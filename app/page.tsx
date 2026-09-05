@@ -1,25 +1,14 @@
-"use client";
-
 import {
   ArrowRight,
   BadgeCheck,
   BarChart3,
-  Bell,
   BookOpen,
   Bot,
-  Car,
   CheckCircle2,
-  CircleDollarSign,
   Compass,
-  CreditCard,
   Gauge,
-  Home,
-  Landmark,
-  LineChart,
-  Menu,
+  LockKeyhole,
   Mountain,
-  PiggyBank,
-  Plus,
   Route,
   ShieldCheck,
   Sparkles,
@@ -27,142 +16,110 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import {
-  buildFinancialSnapshot,
-  compareExtraPaymentScenario,
-  formatCRC,
-  type FinancialInputs,
-} from "@/lib/financial-engine";
+import Link from "next/link";
 
-const baseInputs: FinancialInputs = {
-  monthlyIncomeCents: 180000000,
-  monthlyExpenseCents: 105000000,
-  savingsCents: 32000000,
-  assetsCents: 1840000000,
-  loanBalanceCents: 620000000,
-  annualInterestBps: 750,
-  minimumPaymentCents: 16000000,
-  extraPaymentCents: 4500000,
-  targetAmountCents: 8000000000,
-  targetDownPaymentBps: 2000,
-};
-
-const navItems = [
-  { label: "Inicio", icon: Home },
-  { label: "Mi Panorama", icon: Gauge },
-  { label: "Mi Norte", icon: Target },
-  { label: "Mis Rutas", icon: Route },
-  { label: "Decisiones", icon: Compass },
-  { label: "Norte360 Advisor", icon: Bot },
-  { label: "Mi Familia", icon: Users },
-  { label: "Recursos", icon: BookOpen },
+const featureCards = [
+  {
+    icon: Gauge,
+    title: "Mi Panorama",
+    copy: "Ingresos, gastos, deudas, activos, ahorro, patrimonio y Norte Score en una vista clara.",
+  },
+  {
+    icon: Target,
+    title: "Mi Norte",
+    copy: "Define metas como comprar casa, eliminar deudas, retiro o fondo de emergencia.",
+  },
+  {
+    icon: Route,
+    title: "Mis Rutas",
+    copy: "Compara caminos rapidos, economicos, balanceados y seguros antes de comprometer dinero.",
+  },
+  {
+    icon: Compass,
+    title: "Decision Lab",
+    copy: "Simula casa, carro, consolidacion de deuda, aguinaldo, salario e inversion vs deuda.",
+  },
+  {
+    icon: Bot,
+    title: "Norte360 Advisor",
+    copy: "Explicaciones simples sobre resultados calculados por el motor financiero deterministico.",
+  },
+  {
+    icon: Users,
+    title: "Mi Familia",
+    copy: "Una vision del hogar para coordinar metas compartidas, permisos y responsabilidades.",
+  },
 ];
 
-const routeCards = [
-  { title: "Ruta Rapida", copy: "Llegas antes", icon: Sparkles, active: true },
-  { title: "Ruta Economica", copy: "Menor costo total", icon: CircleDollarSign },
-  { title: "Ruta Balanceada", copy: "Equilibrio ideal", icon: Landmark },
-  { title: "Ruta Segura", copy: "Menor riesgo", icon: ShieldCheck },
+const roadmap = [
+  "MVP con cuentas, Panorama, Norte Score y primer Norte",
+  "Motor de rutas con escenarios guardados",
+  "Decision Lab para decisiones grandes",
+  "Inteligencia local Costa Rica: aguinaldo, quincena y marchamo",
+  "Advisor con IA y guardrails financieros",
+  "Familia, integraciones y marketplace cuando exista confianza",
 ];
 
-const resourceCards = [
-  "Guia para comprar tu primera casa en Costa Rica",
-  "Como usar tu aguinaldo estrategicamente",
-  "Fondo de emergencia: cuanto y como",
-  "Interpreta la tasa de interes en Costa Rica",
-  "Libertad financiera: pasos posibles en LATAM",
-  "Errores financieros mas comunes",
-];
-
-const goalTiles: Array<{ label: string; icon: LucideIcon }> = [
-  { label: "Comprar casa", icon: Home },
-  { label: "Eliminar deudas", icon: CreditCard },
-  { label: "Comprar carro", icon: Car },
-  { label: "Fondo de emergencia", icon: PiggyBank },
-  { label: "Educacion", icon: BookOpen },
-  { label: "Retiro", icon: Landmark },
-  { label: "Construir patrimonio", icon: LineChart },
-  { label: "Personalizado", icon: Plus },
-];
-
-export default function HomePage() {
-  const [inputs, setInputs] = useState(baseInputs);
-  const snapshot = useMemo(() => buildFinancialSnapshot(inputs), [inputs]);
-  const scenario = useMemo(() => compareExtraPaymentScenario(inputs), [inputs]);
-
-  function setMillions(key: keyof FinancialInputs, value: string) {
-    const numeric = Number(value.replace(/[^0-9]/g, ""));
-    setInputs((current) => ({ ...current, [key]: numeric * 100000000 }));
-  }
-
-  function setPercent(key: keyof FinancialInputs, value: string) {
-    const numeric = Number(value.replace(/[^0-9.]/g, ""));
-    setInputs((current) => ({ ...current, [key]: Math.round(numeric * 100) }));
-  }
-
+export default function MarketingPage() {
   return (
     <main>
-      <section className="hero-section" id="inicio">
+      <section className="hero-section sales-hero" id="inicio">
         <nav className="topbar" aria-label="Principal">
-          <a className="brand" href="#inicio" aria-label="Norte360 inicio">
+          <Link className="brand" href="/" aria-label="Norte360 inicio">
             <Mountain size={34} />
             <span>Norte360</span>
-          </a>
+          </Link>
           <div className="toplinks">
             <a href="#producto">Producto</a>
-            <a href="#rutas">Rutas</a>
-            <a href="#decision">Decisiones</a>
+            <a href="#seguridad">Seguridad</a>
             <a href="#roadmap">Roadmap</a>
+            <a href="#precios">Precios</a>
           </div>
           <div className="top-actions">
-            <a className="quiet-button" href="#app">Iniciar sesion</a>
-            <a className="solid-button" href="#app">
-              Comenzar gratis <ArrowRight size={16} />
-            </a>
+            <Link className="quiet-button" href="/login">Iniciar sesion</Link>
+            <Link className="solid-button" href="/create-account">
+              Crear cuenta <ArrowRight size={16} />
+            </Link>
           </div>
         </nav>
 
-        <div className="hero-grid">
+        <div className="hero-grid sales-grid">
           <div className="hero-copy">
             <p className="eyebrow">El Waze de tus finanzas</p>
             <h1>Decisiones de hoy, un mejor manana.</h1>
             <p>
-              Entiende tu situacion, visualiza opciones y encuentra la mejor
-              ruta para alcanzar tus metas financieras.
+              Norte360 te ayuda a entender donde estas, elegir tu destino y
+              comparar rutas financieras antes de tomar decisiones importantes.
             </p>
             <div className="hero-actions">
-              <a className="solid-button" href="#app">
-                Ver mi Norte <ArrowRight size={17} />
-              </a>
-              <a className="outline-button" href="#roadmap">
-                Roadmap v0.1
-              </a>
+              <Link className="solid-button" href="/create-account">
+                Comenzar gratis <ArrowRight size={17} />
+              </Link>
+              <Link className="outline-button" href="/login">
+                Ya tengo cuenta
+              </Link>
             </div>
           </div>
 
-          <div className="onboarding-card" aria-label="Onboarding Norte360">
-            <span className="phone-time">9:41</span>
-            <Mountain size={24} />
-            <h2>Bienvenido a Norte360</h2>
-            <p>Vamos a crear tu mapa financiero en unos simples pasos.</p>
-            {[
-              "Tu informacion basica",
-              "Tus ingresos",
-              "Tus gastos y deudas",
-              "Tus activos",
-              "Tu primer Norte",
-            ].map((item, index) => (
-              <div className="check-row" key={item}>
-                <CheckCircle2 size={18} />
-                <span>{item}</span>
-                <small>{index + 1} min</small>
-              </div>
-            ))}
-            <a className="solid-button wide" href="#app">
-              Comenzar
-            </a>
-          </div>
+          <aside className="login-face" aria-label="Acceso protegido">
+            <div className="lock-mark">
+              <LockKeyhole size={26} />
+            </div>
+            <h2>Tu mapa financiero vive detras de un login.</h2>
+            <p>
+              La web publica muestra el producto. Tu Panorama, rutas y datos
+              personales solo aparecen despues de iniciar sesion.
+            </p>
+            <div className="login-face-actions">
+              <Link className="solid-button wide" href="/create-account">Crear cuenta</Link>
+              <Link className="quiet-button wide" href="/login">Iniciar sesion</Link>
+            </div>
+            <div className="security-list">
+              <span><CheckCircle2 size={17} /> Passwords con hash bcrypt</span>
+              <span><CheckCircle2 size={17} /> Cookie httpOnly de sesion</span>
+              <span><CheckCircle2 size={17} /> App bloqueada sin cuenta</span>
+            </div>
+          </aside>
         </div>
 
         <div className="hero-metrics">
@@ -173,268 +130,70 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="app-shell" id="app">
-        <aside className="sidebar" aria-label="Navegacion de aplicacion">
-          <div className="side-brand">
-            <Mountain size={26} />
-            <strong>Norte360</strong>
-          </div>
-          {navItems.map((item, index) => (
-            <a className={index === 0 ? "active" : ""} href={`#${slug(item.label)}`} key={item.label}>
-              <item.icon size={17} />
-              {item.label}
-            </a>
+      <section className="sales-band" id="producto">
+        <p className="eyebrow">Producto</p>
+        <h2>Una aplicacion financiera para decidir antes de actuar.</h2>
+        <div className="feature-grid">
+          {featureCards.map(({ icon: Icon, title, copy }) => (
+            <article key={title} className="feature-card">
+              <Icon size={28} />
+              <h3>{title}</h3>
+              <p>{copy}</p>
+            </article>
           ))}
-          <div className="sidebar-bottom">
-            <a href="#configuracion">Configuracion</a>
-            <a href="#cerrar">Cerrar sesion</a>
-          </div>
-        </aside>
+        </div>
+      </section>
 
-        <section className="workspace">
-          <header className="workspace-header">
-            <div>
-              <h2>Hola, Fabian</h2>
-              <p>Aqui esta tu panorama financiero.</p>
-            </div>
-            <div className="header-tools">
-              <span>4 de septiembre, 2026</span>
-              <Bell size={18} />
-              <div className="avatar">F</div>
-            </div>
-          </header>
+      <section className="sales-proof" id="seguridad">
+        <div>
+          <p className="eyebrow">Acceso seguro</p>
+          <h2>El dashboard no se expone sin login.</h2>
+          <p>
+            Las rutas de aplicacion revisan la sesion en el servidor. La base de
+            cuentas esta preparada para Postgres via `DATABASE_URL`, con un SQL
+            inicial para crear usuarios y sesiones.
+          </p>
+        </div>
+        <div className="proof-stack">
+          <span><BadgeCheck size={20} /> Cuenta creada en backend</span>
+          <span><BadgeCheck size={20} /> Password nunca se guarda en texto plano</span>
+          <span><BadgeCheck size={20} /> Sesion revocable y expirable</span>
+        </div>
+      </section>
 
-          <section className="dashboard-grid" id="mi-panorama">
-            <article className="panel score-panel">
-              <div className="score-ring" style={{ "--score": `${snapshot.norteScore * 3.6}deg` } as React.CSSProperties}>
-                <strong>{snapshot.norteScore}</strong>
-                <span>de 100</span>
-              </div>
-              <div>
-                <p className="eyebrow">Norte Score</p>
-                <h3>Vas por buen camino</h3>
-                <p>
-                  Tienes una base solida. Hay oportunidades para mejorar tu
-                  ahorro y reducir deuda.
-                </p>
-                <a className="text-link" href="#rutas">
-                  Ver detalles <ArrowRight size={15} />
-                </a>
-              </div>
+      <section className="roadmap sales-roadmap" id="roadmap">
+        <p className="eyebrow">Roadmap</p>
+        <h2>Construido por fases, desde confianza hasta automatizacion.</h2>
+        <div className="roadmap-grid">
+          {roadmap.map((item, index) => (
+            <article key={item}>
+              <strong>Fase {index + 1}</strong>
+              <p>{item}</p>
             </article>
+          ))}
+        </div>
+      </section>
 
-            <article className="panel image-panel">
-              <p>Disciplina hoy, libertad manana.</p>
-            </article>
-
-            <Metric title="Ingresos mensuales" value={formatCRC(snapshot.monthlyIncomeCents)} trend="+12%" />
-            <Metric title="Gastos mensuales" value={formatCRC(snapshot.monthlyExpenseCents)} trend="-3%" tone="warn" />
-            <Metric title="Deuda total" value={formatCRC(snapshot.loanBalanceCents)} trend="-8%" />
-            <Metric title="Ahorro mensual" value={formatCRC(snapshot.monthlySurplusCents)} trend="+20%" />
-            <Metric title="Patrimonio neto" value={formatCRC(snapshot.netWorthCents)} trend="+15%" />
-          </section>
-
-          <section className="two-column" id="mi-norte">
-            <article className="panel">
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">Mi Norte</p>
-                  <h3>Define tu destino financiero</h3>
-                </div>
-                <Target size={24} />
-              </div>
-              <div className="goal-grid">
-                {goalTiles.map(({ label, icon: Icon }) => (
-                  <button className={label === "Comprar casa" ? "goal active" : "goal"} key={label}>
-                    <Icon size={22} />
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="form-grid">
-                <label>
-                  Valor de propiedad
-                  <input value={inputs.targetAmountCents / 100000000} onChange={(event) => setMillions("targetAmountCents", event.target.value)} />
-                  <span>millones CRC</span>
-                </label>
-                <label>
-                  Prima inicial
-                  <input value={inputs.targetDownPaymentBps / 100} onChange={(event) => setPercent("targetDownPaymentBps", event.target.value)} />
-                  <span>%</span>
-                </label>
-                <label>
-                  Plazo
-                  <select defaultValue="20">
-                    <option>20</option>
-                    <option>25</option>
-                    <option>30</option>
-                  </select>
-                  <span>anos</span>
-                </label>
-              </div>
-            </article>
-
-            <article className="panel photo-note">
-              <div>
-                <h3>Tu casa, un paso mas cerca.</h3>
-                <p>Un mejor futuro se construye con decisiones de hoy.</p>
-              </div>
-            </article>
-          </section>
-
-          <section className="panel route-section" id="mis-rutas">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">Mis Rutas</p>
-                <h3>Compara caminos para alcanzar tu Norte</h3>
-              </div>
-              <Route size={24} />
-            </div>
-            <div className="route-card-grid">
-              {routeCards.map((card) => (
-                <button className={card.active ? "route-choice active" : "route-choice"} key={card.title}>
-                  <card.icon size={24} />
-                  <strong>{card.title}</strong>
-                  <span>{card.copy}</span>
-                </button>
-              ))}
-            </div>
-            <div className="route-result">
-              <div>
-                <p className="eyebrow">Ruta Rapida</p>
-                <h4>
-                  Llegada estimada <strong>{scenario.optimized.debtFreeYear}</strong>
-                </h4>
-                <span className="pill">{scenario.yearsSaved} anos antes</span>
-                <div className="route-stats">
-                  <span>Pago mensual</span>
-                  <strong>{formatCRC(scenario.optimized.monthlyPaymentCents)}</strong>
-                  <span>Interes evitado</span>
-                  <strong>{formatCRC(scenario.interestSavedCents)}</strong>
-                </div>
-              </div>
-              <div className="chart" aria-label="Comparacion de rutas">
-                <span className="line current" />
-                <span className="line optimized" />
-                <b>Ruta actual<br />{scenario.baseline.debtFreeYear}</b>
-                <em>Llegas antes<br />{scenario.optimized.debtFreeYear}</em>
-              </div>
-            </div>
-          </section>
-
-          <section className="two-column" id="decisiones">
-            <article className="panel simulator">
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">Decision Lab</p>
-                  <h3>Simulador de compra de casa</h3>
-                </div>
-                <Compass size={24} />
-              </div>
-              <div className="tabs">
-                {["Casa", "Carro", "Consolidar deuda", "Invertir vs Deuda"].map((tab) => (
-                  <button className={tab === "Casa" ? "active" : ""} key={tab}>{tab}</button>
-                ))}
-              </div>
-              <div className="form-grid">
-                <label>
-                  Precio de propiedad
-                  <input value={inputs.targetAmountCents / 100000000} onChange={(event) => setMillions("targetAmountCents", event.target.value)} />
-                  <span>millones CRC</span>
-                </label>
-                <label>
-                  Prima inicial
-                  <input value={inputs.targetDownPaymentBps / 100} onChange={(event) => setPercent("targetDownPaymentBps", event.target.value)} />
-                  <span>%</span>
-                </label>
-                <label>
-                  Tasa de interes
-                  <input value={inputs.annualInterestBps / 100} onChange={(event) => setPercent("annualInterestBps", event.target.value)} />
-                  <span>% anual</span>
-                </label>
-              </div>
-            </article>
-
-            <article className="panel results-card">
-              <p className="eyebrow">Resultados</p>
-              <h3>{formatCRC(snapshot.estimatedHomePaymentCents)}</h3>
-              <p>Pago mensual estimado para una hipoteca a 20 anos.</p>
-              <div className="good-news">
-                <BadgeCheck size={22} />
-                <div>
-                  <strong>Puedes hacerlo</strong>
-                  <span>Esta opcion se ajusta a tu situacion actual.</span>
-                </div>
-              </div>
-              <ul className="impact-list">
-                <li>Tu fecha de libertad financiera se moveria {scenario.yearsSaved} anos antes.</li>
-                <li>Intereses potencialmente evitados: {formatCRC(scenario.interestSavedCents)}.</li>
-              </ul>
-            </article>
-          </section>
-
-          <section className="two-column" id="norte360-advisor">
-            <article className="panel advisor">
-              <p className="eyebrow">Norte360 Advisor</p>
-              <h3>Te explico el camino</h3>
-              <div className="chat-bubble user">Me conviene aportar extra a mi deuda?</div>
-              <div className="chat-bubble bot">
-                Con tus datos actuales, aportar {formatCRC(inputs.extraPaymentCents)} adicionales al mes podria adelantar tu Norte
-                y evitar cerca de {formatCRC(scenario.interestSavedCents)} en intereses. Mantendria tu fondo de emergencia primero.
-              </div>
-            </article>
-
-            <article className="panel family" id="mi-familia">
-              <p className="eyebrow">Mi Familia</p>
-              <h3>Un mismo Norte, mas posibilidades.</h3>
-              <div className="family-row">
-                {["Fabian", "Maria Jose", "Daniel"].map((name) => (
-                  <span key={name}>{name}</span>
-                ))}
-                <button aria-label="Agregar familiar"><Plus size={18} /></button>
-              </div>
-              <Metric title="Panorama familiar" value={formatCRC(340000000)} trend="+ objetivo compartido" />
-            </article>
-          </section>
-
-          <section className="panel resources" id="recursos">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">Recursos</p>
-                <h3>Aprende a tu ritmo</h3>
-              </div>
-              <BookOpen size={24} />
-            </div>
-            <div className="resource-grid">
-              {resourceCards.map((title, index) => (
-                <article key={title}>
-                  <span>{index % 2 ? "Articulo" : "Video"} · {8 + index} min</span>
-                  <h4>{title}</h4>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="roadmap" id="roadmap">
-            <p className="eyebrow">Roadmap de producto</p>
-            <h2>Una ruta de construccion por fases</h2>
-            <div className="roadmap-grid">
-              {[
-                ["MVP", "Donde estoy: ingresos, gastos, deudas, activos, score y primer Norte."],
-                ["Motor de rutas", "Rutas rapida, economica, balanceada y segura con escenarios."],
-                ["Decision Lab", "Simuladores de casa, carro, consolidacion, inversion y salario."],
-                ["Costa Rica", "Aguinaldo, quincena, marchamo, educacion y supuestos locales."],
-                ["Advisor", "Coaching con IA basado en resultados deterministas."],
-                ["Familia", "Plan financiero del hogar, permisos y metas compartidas."],
-              ].map(([phase, text]) => (
-                <article key={phase}>
-                  <strong>{phase}</strong>
-                  <p>{text}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-        </section>
+      <section className="sales-band pricing-band" id="precios">
+        <p className="eyebrow">Precios</p>
+        <h2>Empieza gratis. Crece cuando tu Norte lo pida.</h2>
+        <div className="pricing-grid">
+          <article>
+            <strong>Free</strong>
+            <p>Panorama, primer Norte y una ruta base.</p>
+          </article>
+          <article>
+            <strong>Plus</strong>
+            <p>Escenarios guardados, Decision Lab y Advisor ampliado.</p>
+          </article>
+          <article>
+            <strong>Family</strong>
+            <p>Metas compartidas, permisos y vision del hogar.</p>
+          </article>
+        </div>
+        <Link className="solid-button" href="/create-account">
+          Crear mi cuenta <ArrowRight size={17} />
+        </Link>
       </section>
     </main>
   );
@@ -447,33 +206,4 @@ function Feature({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
       <span>{label}</span>
     </div>
   );
-}
-
-function Metric({
-  title,
-  value,
-  trend,
-  tone,
-}: {
-  title: string;
-  value: string;
-  trend: string;
-  tone?: "warn";
-}) {
-  return (
-    <article className="metric-card">
-      <span>{title}</span>
-      <strong>{value}</strong>
-      <small className={tone === "warn" ? "warn" : ""}>{trend}</small>
-    </article>
-  );
-}
-
-function slug(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
 }

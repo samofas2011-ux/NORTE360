@@ -282,8 +282,24 @@ p {
   text-decoration: none;
 }
 
+.sidebar button {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
 .sidebar a.active,
-.sidebar a:hover {
+.sidebar a:hover,
+.sidebar button:hover {
   background: rgba(17, 164, 99, 0.28);
   color: #fff;
 }
@@ -812,6 +828,213 @@ label span {
   color: var(--muted);
 }
 
+.sales-hero {
+  min-height: 100vh;
+}
+
+.sales-grid {
+  grid-template-columns: minmax(0, 1fr) 420px;
+}
+
+.login-face,
+.auth-card {
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.login-face {
+  display: grid;
+  gap: 18px;
+  padding: 26px;
+}
+
+.lock-mark {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--deep);
+  color: #fff;
+}
+
+.login-face h2,
+.sales-band h2,
+.sales-proof h2 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.login-face p,
+.sales-band > p:not(.eyebrow),
+.sales-proof p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.login-face-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.security-list,
+.proof-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.security-list span,
+.proof-stack span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--green);
+  font-weight: 800;
+}
+
+.sales-band,
+.sales-proof {
+  width: min(1180px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: clamp(54px, 9vw, 104px) 0;
+}
+
+.feature-grid,
+.pricing-grid {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.feature-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.feature-card,
+.pricing-grid article {
+  min-height: 190px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 20px;
+  background: #fff;
+  box-shadow: 0 12px 36px rgba(16, 32, 26, 0.06);
+}
+
+.feature-card svg {
+  color: var(--green);
+}
+
+.feature-card h3,
+.pricing-grid strong {
+  display: block;
+  margin: 16px 0 8px;
+  font-size: 1.25rem;
+}
+
+.feature-card p,
+.pricing-grid p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.sales-proof {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 40px;
+  align-items: center;
+}
+
+.proof-stack {
+  border-left: 4px solid var(--green);
+  padding-left: 22px;
+}
+
+.sales-roadmap {
+  width: min(1180px, calc(100% - 40px));
+  margin: 0 auto;
+}
+
+.pricing-band {
+  text-align: center;
+}
+
+.pricing-grid {
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.auth-page {
+  min-height: 100vh;
+  padding: 20px;
+  background:
+    linear-gradient(90deg, rgba(237, 246, 239, 0.97), rgba(237, 246, 239, 0.58)),
+    url("https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=2200&q=82");
+  background-position: center;
+  background-size: cover;
+}
+
+.auth-shell {
+  display: grid;
+  gap: 32px;
+  width: min(480px, 100%);
+  margin: 0 auto;
+  padding-top: clamp(24px, 10vh, 90px);
+}
+
+.auth-card {
+  padding: 28px;
+}
+
+.auth-card h1 {
+  margin: 0;
+  font-size: clamp(2.4rem, 7vw, 4rem);
+  line-height: 0.96;
+  letter-spacing: 0;
+}
+
+.auth-card p:not(.eyebrow) {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.auth-form button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.form-error {
+  margin: 0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff0f0;
+  color: var(--danger) !important;
+  font-weight: 800;
+}
+
+.auth-switch {
+  margin: 18px 0 0;
+  text-align: center;
+}
+
+.auth-switch a {
+  color: var(--green);
+  font-weight: 900;
+}
+
 @media (max-width: 1080px) {
   .toplinks {
     display: none;
@@ -820,7 +1043,9 @@ label span {
   .hero-grid,
   .app-shell,
   .two-column,
-  .route-result {
+  .route-result,
+  .sales-grid,
+  .sales-proof {
     grid-template-columns: 1fr;
   }
 
@@ -838,6 +1063,8 @@ label span {
   .goal-grid,
   .route-card-grid,
   .resource-grid,
+  .feature-grid,
+  .pricing-grid,
   .roadmap-grid,
   .hero-metrics {
     grid-template-columns: repeat(2, 1fr);
@@ -890,6 +1117,8 @@ label span {
   .goal-grid,
   .route-card-grid,
   .resource-grid,
+  .feature-grid,
+  .pricing-grid,
   .roadmap-grid,
   .hero-metrics,
   .score-panel,

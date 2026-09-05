@@ -470,6 +470,51 @@ p {
   color: var(--danger);
 }
 
+.data-entry-panel {
+  margin-bottom: 14px;
+}
+
+.profile-grid {
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+}
+
+.save-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 18px;
+}
+
+.save-row .solid-button {
+  min-width: 210px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 14px;
+  background: #f8fbf9;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.status-pill.saved {
+  border-color: rgba(0, 112, 67, 0.18);
+  background: var(--mint);
+  color: var(--green);
+}
+
+.status-pill.error {
+  border-color: rgba(198, 60, 48, 0.22);
+  background: #fff3f1;
+  color: var(--danger);
+}
+
 .two-column {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
@@ -1184,6 +1229,7 @@ label span {
 
   .hero-actions,
   .header-tools,
+  .save-row,
   .coming-soon-points {
     align-items: stretch;
     flex-direction: column;

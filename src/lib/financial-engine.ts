@@ -45,7 +45,8 @@ export function buildFinancialSnapshot(inputs: FinancialInputs): FinancialSnapsh
 
   const monthlySurplusCents = inputs.monthlyIncomeCents - inputs.monthlyExpenseCents;
   const netWorthCents = inputs.assetsCents + inputs.savingsCents - inputs.loanBalanceCents;
-  const debtToIncomeBps = Math.round((inputs.minimumPaymentCents / inputs.monthlyIncomeCents) * 10000);
+  const debtToIncomeBps =
+    inputs.monthlyIncomeCents > 0 ? Math.round((inputs.minimumPaymentCents / inputs.monthlyIncomeCents) * 10000) : 0;
   const emergencyCoverageMonths = roundToOne(inputs.savingsCents / Math.max(inputs.monthlyExpenseCents, 1));
   const downPaymentCents = Math.round((inputs.targetAmountCents * inputs.targetDownPaymentBps) / 10000);
   const financedCents = Math.max(inputs.targetAmountCents - downPaymentCents, 0);
@@ -169,9 +170,6 @@ function assertMoneyInputs(inputs: FinancialInputs) {
     if (!Number.isFinite(value) || value < 0) {
       throw new Error(`${key} must be a non-negative finite number.`);
     }
-  }
-  if (inputs.monthlyIncomeCents <= 0) {
-    throw new Error("monthlyIncomeCents must be greater than zero.");
   }
 }
 

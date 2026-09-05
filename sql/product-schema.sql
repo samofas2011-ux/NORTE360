@@ -242,16 +242,28 @@ CREATE INDEX IF NOT EXISTS household_members_user_id_idx ON household_members(us
 CREATE INDEX IF NOT EXISTS data_sources_user_id_idx ON data_sources(user_id);
 CREATE INDEX IF NOT EXISTS consents_user_id_idx ON consents(user_id);
 CREATE INDEX IF NOT EXISTS financial_profiles_user_id_idx ON financial_profiles(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS financial_profiles_user_individual_uidx
+  ON financial_profiles(user_id)
+  WHERE household_id IS NULL;
 CREATE INDEX IF NOT EXISTS financial_accounts_user_id_idx ON financial_accounts(user_id);
 CREATE INDEX IF NOT EXISTS financial_accounts_household_id_idx ON financial_accounts(household_id);
 CREATE INDEX IF NOT EXISTS account_balance_snapshots_account_id_captured_at_idx ON account_balance_snapshots(account_id, captured_at DESC);
 CREATE INDEX IF NOT EXISTS financial_transactions_user_id_date_idx ON financial_transactions(user_id, transaction_date DESC);
 CREATE INDEX IF NOT EXISTS financial_transactions_account_id_date_idx ON financial_transactions(account_id, transaction_date DESC);
 CREATE INDEX IF NOT EXISTS liabilities_user_id_idx ON liabilities(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS liabilities_user_individual_name_uidx
+  ON liabilities(user_id, name)
+  WHERE household_id IS NULL AND deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS liabilities_household_id_idx ON liabilities(household_id);
 CREATE INDEX IF NOT EXISTS assets_user_id_idx ON assets(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS assets_user_individual_name_uidx
+  ON assets(user_id, name)
+  WHERE household_id IS NULL AND deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS assets_household_id_idx ON assets(household_id);
 CREATE INDEX IF NOT EXISTS goals_user_id_status_idx ON goals(user_id, status);
+CREATE UNIQUE INDEX IF NOT EXISTS goals_user_individual_type_uidx
+  ON goals(user_id, goal_type)
+  WHERE household_id IS NULL AND deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS goals_household_id_status_idx ON goals(household_id, status);
 CREATE INDEX IF NOT EXISTS scenarios_user_id_created_at_idx ON scenarios(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS scenarios_goal_id_idx ON scenarios(goal_id);

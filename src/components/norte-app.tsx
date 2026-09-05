@@ -16,7 +16,6 @@ import {
   Home,
   Landmark,
   LineChart,
-  Menu,
   Mountain,
   PiggyBank,
   Plus,
@@ -27,12 +26,13 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import {
   buildFinancialSnapshot,
   compareExtraPaymentScenario,
   formatCRC,
   type FinancialInputs,
+  type RouteComparison,
 } from "@/lib/financial-engine";
 
 const baseInputs: FinancialInputs = {
@@ -86,19 +86,103 @@ const goalTiles: Array<{ label: string; icon: LucideIcon }> = [
   { label: "Personalizado", icon: Plus },
 ];
 
-export function NorteApp({ userName = "Fabian" }: { userName?: string }) {
-  const [inputs, setInputs] = useState(baseInputs);
+type NorteAppProps = {
+  userName?: string;
+  initialInputs?: FinancialInputs;
+  hasSavedProfile?: boolean;
+  updatedAt?: string | null;
+};
+
+type SaveState = "idle" | "saving" | "saved" | "error";
+
+const fallbackRouteComparison: RouteComparison = {
+  baseline: {
+    months: 0,
+    totalInterestCents: 0,
+    debtFreeYear: new Date().getFullYear(),
+    monthlyPaymentCents: 0,
+  },
+  optimized: {
+    months: 0,
+    totalInterestCents: 0,
+    debtFreeYear: new Date().getFullYear(),
+    monthlyPaymentCents: 0,
+  },
+  monthsSaved: 0,
+  yearsSaved: 0,
+  interestSavedCents: 0,
+};
+
+export function NorteApp({
+  userName = "Fabian",
+  initialInputs = baseInputs,
+  hasSavedProfile = false,
+  updatedAt = null,
+}: NorteAppProps) {
+  const [inputs, setInputs] = useState(() => initialInputs);
+  const [profileSaved, setProfileSaved] = useState(hasSavedProfile);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(updatedAt);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveMessage, setSaveMessage] = useState("");
   const snapshot = useMemo(() => buildFinancialSnapshot(inputs), [inputs]);
-  const scenario = useMemo(() => compareExtraPaymentScenario(inputs), [inputs]);
+  const scenario = useMemo(() => getRouteComparison(inputs), [inputs]);
+  const isProfileComplete = inputs.monthlyIncomeCents > 0 && inputs.monthlyExpenseCents > 0;
+  const userInitial = userName.trim().charAt(0).toUpperCase() || "N";
+  const headerDate = lastUpdatedAt ? `Actualizado ${formatDisplayDate(lastUpdatedAt)}` : "Perfil pendiente";
 
   function setMillions(key: keyof FinancialInputs, value: string) {
     const numeric = Number(value.replace(/[^0-9]/g, ""));
     setInputs((current) => ({ ...current, [key]: numeric * 100000000 }));
+    resetSaveMessage();
   }
 
   function setPercent(key: keyof FinancialInputs, value: string) {
     const numeric = Number(value.replace(/[^0-9.]/g, ""));
     setInputs((current) => ({ ...current, [key]: Math.round(numeric * 100) }));
+    resetSaveMessage();
+  }
+
+  function updateMillions(key: keyof FinancialInputs, value: string) {
+    const numeric = Number(value.replace(/[^0-9]/g, ""));
+    setInputs((current) => ({ ...current, [key]: numeric * 100000000 }));
+    resetSaveMessage();
+  }
+
+  function resetSaveMessage() {
+    if (saveState !== "saving") {
+      setSaveState("idle");
+      setSaveMessage("");
+    }
+  }
+
+  async function saveFinancialProfile() {
+    setSaveState("saving");
+    setSaveMessage("Guardando tu panorama...");
+
+    const response = await fetch("/api/financial-profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inputs }),
+    });
+
+    const body = (await response.json()) as {
+      inputs?: FinancialInputs;
+      hasSavedProfile?: boolean;
+      updatedAt?: string | null;
+      error?: string;
+    };
+
+    if (!response.ok || !body.inputs) {
+      setSaveState("error");
+      setSaveMessage(body.error ?? "No se pudo guardar. Intentalo de nuevo.");
+      return;
+    }
+
+    setInputs(body.inputs);
+    setProfileSaved(Boolean(body.hasSavedProfile));
+    setLastUpdatedAt(body.updatedAt ?? null);
+    setSaveState("saved");
+    setSaveMessage("Listo. Tu panorama esta guardado.");
   }
 
   async function logout() {
@@ -130,18 +214,52 @@ export function NorteApp({ userName = "Fabian" }: { userName?: string }) {
           <header className="workspace-header">
             <div>
               <h2>Hola, {userName}</h2>
-              <p>Aqui esta tu panorama financiero.</p>
+              <p>{profileSaved ? "Aqui esta tu panorama financiero." : "Completa tus datos para activar tu panorama real."}</p>
             </div>
             <div className="header-tools">
-              <span>4 de septiembre, 2026</span>
+              <span>{headerDate}</span>
               <Bell size={18} />
-              <div className="avatar">F</div>
+              <div className="avatar">{userInitial}</div>
             </div>
           </header>
 
+          <section className="panel data-entry-panel" id="inicio">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">{profileSaved ? "Panorama guardado" : "Primer paso"}</p>
+                <h3>{profileSaved ? "Actualiza tus numeros clave" : "Construye tu Panorama"}</h3>
+              </div>
+              <Gauge size={24} />
+            </div>
+            <div className="form-grid profile-grid">
+              <MoneyField label="Ingresos mensuales" value={inputs.monthlyIncomeCents} onChange={(value) => updateMillions("monthlyIncomeCents", value)} />
+              <MoneyField label="Gastos mensuales" value={inputs.monthlyExpenseCents} onChange={(value) => updateMillions("monthlyExpenseCents", value)} />
+              <MoneyField label="Ahorro y efectivo" value={inputs.savingsCents} onChange={(value) => updateMillions("savingsCents", value)} />
+              <MoneyField label="Activos adicionales" value={inputs.assetsCents} onChange={(value) => updateMillions("assetsCents", value)} />
+              <MoneyField label="Deuda total" value={inputs.loanBalanceCents} onChange={(value) => updateMillions("loanBalanceCents", value)} />
+              <MoneyField label="Pago minimo deuda" value={inputs.minimumPaymentCents} onChange={(value) => updateMillions("minimumPaymentCents", value)} />
+              <label>
+                Tasa de deuda
+                <input inputMode="decimal" value={inputs.annualInterestBps / 100} onChange={(event) => setPercent("annualInterestBps", event.target.value)} />
+                <span>% anual</span>
+              </label>
+              <MoneyField label="Aporte extra mensual" value={inputs.extraPaymentCents} onChange={(value) => updateMillions("extraPaymentCents", value)} />
+              <MoneyField label="Meta para casa" value={inputs.targetAmountCents} onChange={(value) => updateMillions("targetAmountCents", value)} />
+            </div>
+            <div className="save-row">
+              <button className="solid-button" disabled={saveState === "saving"} onClick={saveFinancialProfile} type="button">
+                {saveState === "saving" ? "Guardando" : "Guardar panorama"}
+                <ArrowRight size={17} />
+              </button>
+              <span className={`status-pill ${saveState}`}>
+                {saveMessage || (isProfileComplete ? "Datos listos para calcular" : "Agrega ingresos y gastos para empezar")}
+              </span>
+            </div>
+          </section>
+
           <section className="dashboard-grid" id="mi-panorama">
             <article className="panel score-panel">
-              <div className="score-ring" style={{ "--score": `${snapshot.norteScore * 3.6}deg` } as React.CSSProperties}>
+              <div className="score-ring" style={{ "--score": `${snapshot.norteScore * 3.6}deg` } as CSSProperties}>
                 <strong>{snapshot.norteScore}</strong>
                 <span>de 100</span>
               </div>
@@ -189,12 +307,12 @@ export function NorteApp({ userName = "Fabian" }: { userName?: string }) {
               <div className="form-grid">
                 <label>
                   Valor de propiedad
-                  <input value={inputs.targetAmountCents / 100000000} onChange={(event) => setMillions("targetAmountCents", event.target.value)} />
+                  <input inputMode="numeric" value={inputs.targetAmountCents / 100000000} onChange={(event) => setMillions("targetAmountCents", event.target.value)} />
                   <span>millones CRC</span>
                 </label>
                 <label>
                   Prima inicial
-                  <input value={inputs.targetDownPaymentBps / 100} onChange={(event) => setPercent("targetDownPaymentBps", event.target.value)} />
+                  <input inputMode="decimal" value={inputs.targetDownPaymentBps / 100} onChange={(event) => setPercent("targetDownPaymentBps", event.target.value)} />
                   <span>%</span>
                 </label>
                 <label>
@@ -274,17 +392,17 @@ export function NorteApp({ userName = "Fabian" }: { userName?: string }) {
               <div className="form-grid">
                 <label>
                   Precio de propiedad
-                  <input value={inputs.targetAmountCents / 100000000} onChange={(event) => setMillions("targetAmountCents", event.target.value)} />
+                  <input inputMode="numeric" value={inputs.targetAmountCents / 100000000} onChange={(event) => setMillions("targetAmountCents", event.target.value)} />
                   <span>millones CRC</span>
                 </label>
                 <label>
                   Prima inicial
-                  <input value={inputs.targetDownPaymentBps / 100} onChange={(event) => setPercent("targetDownPaymentBps", event.target.value)} />
+                  <input inputMode="decimal" value={inputs.targetDownPaymentBps / 100} onChange={(event) => setPercent("targetDownPaymentBps", event.target.value)} />
                   <span>%</span>
                 </label>
                 <label>
                   Tasa de interes
-                  <input value={inputs.annualInterestBps / 100} onChange={(event) => setPercent("annualInterestBps", event.target.value)} />
+                  <input inputMode="decimal" value={inputs.annualInterestBps / 100} onChange={(event) => setPercent("annualInterestBps", event.target.value)} />
                   <span>% anual</span>
                 </label>
               </div>
@@ -373,6 +491,47 @@ export function NorteApp({ userName = "Fabian" }: { userName?: string }) {
       </section>
     </main>
   );
+}
+
+function MoneyField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label>
+      {label}
+      <input inputMode="numeric" value={value / 100000000} onChange={(event) => onChange(event.target.value)} />
+      <span>millones CRC</span>
+    </label>
+  );
+}
+
+function getRouteComparison(inputs: FinancialInputs) {
+  try {
+    return compareExtraPaymentScenario(inputs);
+  } catch {
+    return {
+      ...fallbackRouteComparison,
+      baseline: { ...fallbackRouteComparison.baseline, monthlyPaymentCents: inputs.minimumPaymentCents },
+      optimized: {
+        ...fallbackRouteComparison.optimized,
+        monthlyPaymentCents: inputs.minimumPaymentCents + inputs.extraPaymentCents,
+      },
+    };
+  }
+}
+
+function formatDisplayDate(value: string) {
+  return new Intl.DateTimeFormat("es-CR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 function Feature({ icon: Icon, label }: { icon: LucideIcon; label: string }) {

@@ -30,6 +30,26 @@ describe("financial engine", () => {
     expect(snapshot.norteScore).toBeGreaterThan(50);
   });
 
+  it("supports an empty profile for a new user", () => {
+    const snapshot = buildFinancialSnapshot({
+      monthlyIncomeCents: 0,
+      monthlyExpenseCents: 0,
+      savingsCents: 0,
+      assetsCents: 0,
+      loanBalanceCents: 0,
+      annualInterestBps: 0,
+      minimumPaymentCents: 0,
+      extraPaymentCents: 0,
+      targetAmountCents: 0,
+      targetDownPaymentBps: 2000,
+    });
+
+    expect(snapshot.monthlySurplusCents).toBe(0);
+    expect(snapshot.debtToIncomeBps).toBe(0);
+    expect(snapshot.estimatedHomePaymentCents).toBe(0);
+    expect(snapshot.norteScore).toBeGreaterThanOrEqual(1);
+  });
+
   it("calculates amortized monthly payment", () => {
     const payment = monthlyPayment(6400000000, 750, 240);
 

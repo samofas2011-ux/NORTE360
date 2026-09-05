@@ -10,15 +10,16 @@ export default function ComingSoonPage() {
             <Mountain size={34} />
             <span>Norte360</span>
           </a>
-          <p className="eyebrow">Lanzamiento privado</p>
-          <h1>Estamos preparando tu mapa financiero.</h1>
+          <p className="eyebrow">Construccion privada</p>
+          <h1>Norte360 esta en modo privado.</h1>
           <p>
-            Norte360 esta en construccion. Por ahora el acceso completo al sitio
-            y a la aplicacion esta reservado para el equipo fundador.
+            Estamos construyendo la aplicacion completa en segundo plano. Hasta
+            que el producto este listo para salir, el sitio publico, el webapp y
+            los flujos de cuenta permanecen protegidos para el equipo fundador.
           </p>
           <div className="coming-soon-points">
-            <span><ShieldCheck size={18} /> Website oculto hasta el lanzamiento</span>
-            <span><LockKeyhole size={18} /> Acceso temporal protegido</span>
+            <span><ShieldCheck size={18} /> Producto oculto hasta aprobacion</span>
+            <span><LockKeyhole size={18} /> Acceso privado con credenciales</span>
           </div>
         </div>
         <SiteGateForm />

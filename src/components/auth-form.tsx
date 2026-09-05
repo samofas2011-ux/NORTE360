@@ -81,10 +81,10 @@ export function AuthForm({ mode }: { mode: Mode }) {
                 name="password"
                 type="password"
                 autoComplete={isCreate ? "new-password" : "current-password"}
-                minLength={10}
+                minLength={15}
                 required
               />
-              {isCreate ? <span>Minimo 10 caracteres.</span> : null}
+              {isCreate ? <span>Minimo 15 caracteres.</span> : null}
             </label>
             {error ? <p className="form-error">{error}</p> : null}
             <button className="solid-button wide" type="submit" disabled={status === "loading"}>

@@ -8,12 +8,17 @@ import {
   findUserByEmail,
 } from "@/lib/auth-db";
 import { issueSessionCookie, normalizeEmail, validatePassword } from "@/lib/auth";
+import { auditAuthEvent, checkAuthRateLimit, isSameOriginRequest } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    if (!isSameOriginRequest(request)) {
+      return NextResponse.json({ error: "Solicitud no permitida." }, { status: 403 });
+    }
+
     const body = await request.json();
     const name = String(body.name ?? "").trim();
     const email = normalizeEmail(String(body.email ?? ""));
@@ -24,13 +29,20 @@ export async function POST(request: Request) {
     }
 
     if (!validatePassword(password)) {
-      return NextResponse.json({ error: "El password debe tener al menos 10 caracteres." }, { status: 400 });
+      return NextResponse.json({ error: "El password debe tener entre 15 y 128 caracteres." }, { status: 400 });
     }
 
     await ensureAuthSchema();
 
+    const allowed = await checkAuthRateLimit("register", request, email);
+    if (!allowed) {
+      await auditAuthEvent(request, "register_rate_limited", { metadata: { email_domain: email.split("@")[1] ?? "" } });
+      return NextResponse.json({ error: "Demasiados intentos. Intenta de nuevo en unos minutos." }, { status: 429 });
+    }
+
     const existing = await findUserByEmail(email);
     if (existing) {
+      await auditAuthEvent(request, "register_duplicate", { metadata: { email_domain: email.split("@")[1] ?? "" } });
       return NextResponse.json({ error: "Ya existe una cuenta con ese email." }, { status: 409 });
     }
 
@@ -42,7 +54,8 @@ export async function POST(request: Request) {
       passwordHash,
     });
 
-    await issueSessionCookie(user.id);
+    await issueSessionCookie(user.id, request);
+    await auditAuthEvent(request, "register_success", { userId: user.id, metadata: { email_domain: email.split("@")[1] ?? "" } });
     return NextResponse.json({ user: { id: user.id, email: user.email, name: user.name } }, { status: 201 });
   } catch (error) {
     if (error instanceof DatabaseNotConfiguredError) {

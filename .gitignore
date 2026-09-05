@@ -1,0 +1,8 @@
+.vercel
+.next
+node_modules
+out
+coverage
+.env
+.env.local
+npm-debug.log*

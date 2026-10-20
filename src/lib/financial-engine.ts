@@ -118,6 +118,8 @@ export function calculatePayoff({
     months += 1;
   }
 
+  if (balance > 0) throw new Error("El pago no cancela la deuda en un plazo de 100 anos.");
+
   return {
     months,
     totalInterestCents,

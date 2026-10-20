@@ -29,7 +29,8 @@ export function SiteGateForm() {
     }
 
     const next = new URLSearchParams(window.location.search).get("next") || "/";
-    router.push(next.startsWith("/") ? next : "/");
+    const safeNext = next.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : "/";
+    router.push(safeNext + window.location.hash);
     router.refresh();
   }
 

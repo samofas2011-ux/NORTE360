@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
-import { DatabaseNotConfiguredError, ensureAuthSchema, findUserByEmail } from "@/lib/auth-db";
+import { DatabaseNotConfiguredError, findUserByEmail } from "@/lib/auth-db";
+import { readAuthBody, validEmail } from "@/lib/auth-inputs";
+import { deliverAccountEmails } from "@/lib/account-email-outbox";
 import { auditAuthEvent, checkAuthRateLimit, isSameOriginRequest, issueSessionCookie, normalizeEmail } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -12,11 +14,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Solicitud no permitida." }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = await readAuthBody(request);
     const email = normalizeEmail(String(body.email ?? ""));
     const password = String(body.password ?? "");
+    if (!validEmail(email) || typeof body.password !== "string" || password.length > 128) return NextResponse.json({ error: "Email o password incorrecto." }, { status: 400 });
 
-    await ensureAuthSchema();
 
     const allowed = await checkAuthRateLimit("login", request, email);
     if (!allowed) {
@@ -32,10 +34,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Email o password incorrecto." }, { status: 401 });
     }
 
+    if (user.email_verification_required && !user.email_verified_at) return NextResponse.json({ error: "Confirma tu correo antes de iniciar sesión.", verificationRequired: true }, { status: 403 });
     await issueSessionCookie(user.id, request);
+    try { await deliverAccountEmails(user.id); } catch { console.error("Account notification retry unavailable"); }
     await auditAuthEvent(request, "login_success", { userId: user.id });
     return NextResponse.json({ user: { id: user.id, email: user.email, name: user.name } });
   } catch (error) {
+    if (error instanceof SyntaxError) return NextResponse.json({ error: "Solicitud inválida." }, { status: 400 });
     if (error instanceof DatabaseNotConfiguredError) {
       return NextResponse.json(
         { error: "La base de datos aun no esta configurada. Conecta DATABASE_URL para activar login." },

@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID, createHash } from "node:crypto";
 import { cookies } from "next/headers";
+import { validNewPassword } from "./auth-inputs";
 import {
   createSession,
   deleteSessionByTokenHash,
@@ -11,14 +12,13 @@ import {
 
 export const SESSION_COOKIE = "norte360_session";
 const SESSION_DAYS = 30;
-const MIN_PASSWORD_LENGTH = 15;
 
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
 export function validatePassword(password: string) {
-  return password.length >= MIN_PASSWORD_LENGTH && password.length <= 128;
+  return validNewPassword(password);
 }
 
 export function hashSessionToken(token: string) {

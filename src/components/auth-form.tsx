@@ -11,6 +11,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
   const [status, setStatus] = useState<"idle" | "loading">("idle");
   const [error, setError] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -19,6 +22,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
     const form = new FormData(event.currentTarget);
     const payload = Object.fromEntries(form.entries());
+    if (mode === "create" && payload.password !== payload.confirmPassword) {
+      setError("Las contraseñas no coinciden."); setStatus("idle"); return;
+    }
     const endpoint = mode === "create" ? "/api/auth/register" : "/api/auth/login";
 
     try {
@@ -31,8 +37,11 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
       if (!response.ok) {
         setError(body.error ?? "No pudimos completar la solicitud.");
+        setNeedsVerification(body.verificationRequired === true);
         return;
       }
+
+      if (body.verificationRequired) { setConfirmation(body.message); return; }
 
       router.push("/app");
       router.refresh();
@@ -64,36 +73,41 @@ export function AuthForm({ mode }: { mode: Mode }) {
               : "Entra a tu Panorama, rutas y simuladores privados."}
           </p>
 
-          <form className="auth-form" onSubmit={submit}>
+          {confirmation ? <div role="status"><h2>Confirma tu correo</h2><p>{confirmation}</p><p>El enlace vence en 30 minutos. Revisa también tu carpeta de spam.</p><Link className="solid-button" href="/account-action#purpose=verify">Reenviar confirmación</Link><p><Link href="/login">Volver a iniciar sesión</Link></p></div> : <form className="auth-form" onSubmit={submit}>
             {isCreate ? (
               <label>
                 Nombre
-                <input name="name" autoComplete="name" minLength={2} required />
+                <input name="name" autoComplete="name" minLength={2} maxLength={120} required />
               </label>
             ) : null}
             <label>
               Email
-              <input name="email" type="email" autoComplete="email" required />
+              <input name="email" type="email" autoComplete="email" maxLength={254} required />
             </label>
             <label>
-              Password
+              Contraseña
               <input
                 name="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 autoComplete={isCreate ? "new-password" : "current-password"}
-                minLength={15}
+                minLength={isCreate ? 15 : undefined}
+                maxLength={isCreate ? 72 : 128}
                 required
               />
-              {isCreate ? <span>Minimo 15 caracteres.</span> : null}
+              {isCreate ? <span>Mínimo 15 caracteres; máximo 72 bytes. Algunos símbolos y letras ocupan más de un byte.</span> : null}
             </label>
-            {error ? <p className="form-error">{error}</p> : null}
+            {isCreate ? <label>Confirma tu contraseña<input name="confirmPassword" type={showPassword ? "text" : "password"} autoComplete="new-password" minLength={15} maxLength={72} required /></label> : null}
+            <label style={{display:"flex",alignItems:"center",gap:8}}><input style={{width:"auto"}} type="checkbox" checked={showPassword} onChange={event=>setShowPassword(event.target.checked)} />Mostrar contraseña</label>
+            {error ? <p className="form-error" role="alert">{error}</p> : null}
+            {needsVerification ? <Link href="/account-action#purpose=verify">Reenviar correo de confirmación</Link> : null}
             <button className="solid-button wide" type="submit" disabled={status === "loading"}>
               {status === "loading" ? "Procesando..." : isCreate ? "Crear cuenta" : "Iniciar sesion"}
               <ArrowRight size={16} />
             </button>
-          </form>
+          </form>}
 
           <p className="auth-switch">
+            {!isCreate?<Link href="/account-action">Olvidé mi contraseña</Link>:null}{" "}
             {isCreate ? "Ya tienes cuenta?" : "Aun no tienes cuenta?"}{" "}
             <Link href={isCreate ? "/login" : "/create-account"}>
               {isCreate ? "Inicia sesion" : "Crea una cuenta"}

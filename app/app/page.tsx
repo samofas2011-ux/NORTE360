@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { NorteApp } from "@/components/norte-app";
 import { getCurrentSession } from "@/lib/auth";
-import { getUserFinancialData } from "@/lib/product-db";
+import { getFullAppData } from "@/lib/product-db";
 
 export const dynamic = "force-dynamic";
 
@@ -12,13 +12,11 @@ export default async function ProtectedAppPage() {
     redirect("/login");
   }
 
-  const financialData = await getUserFinancialData(session.user.id);
+  const appData = await getFullAppData(session.user.id, session.user.name);
 
   return (
     <NorteApp
-      hasSavedProfile={financialData.hasSavedProfile}
-      initialInputs={financialData.inputs}
-      updatedAt={financialData.updatedAt}
+      initialAppData={appData}
       userName={session.user.name}
     />
   );

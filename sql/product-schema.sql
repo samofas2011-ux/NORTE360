@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS financial_profiles (
   monthly_income_cents BIGINT NOT NULL DEFAULT 0 CHECK (monthly_income_cents >= 0),
   monthly_expense_cents BIGINT NOT NULL DEFAULT 0 CHECK (monthly_expense_cents >= 0),
   emergency_fund_target_months NUMERIC(5, 2) NOT NULL DEFAULT 6,
+  planning_json JSONB NOT NULL DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (user_id, household_id)
@@ -261,9 +262,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS assets_user_individual_name_uidx
   WHERE household_id IS NULL AND deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS assets_household_id_idx ON assets(household_id);
 CREATE INDEX IF NOT EXISTS goals_user_id_status_idx ON goals(user_id, status);
-CREATE UNIQUE INDEX IF NOT EXISTS goals_user_individual_type_uidx
-  ON goals(user_id, goal_type)
-  WHERE household_id IS NULL AND deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS goals_household_id_status_idx ON goals(household_id, status);
 CREATE INDEX IF NOT EXISTS scenarios_user_id_created_at_idx ON scenarios(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS scenarios_goal_id_idx ON scenarios(goal_id);

@@ -36,7 +36,9 @@ export async function verifySiteGateToken(token: string | undefined, secret: str
     return false;
   }
 
-  const [expiresAt, signature] = token.split(".");
+  const parts = token.split(".");
+  if (parts.length !== 2) return false;
+  const [expiresAt, signature] = parts;
   const expiresAtNumber = Number(expiresAt);
 
   if (!expiresAt || !signature || !Number.isFinite(expiresAtNumber)) {

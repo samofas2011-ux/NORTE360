@@ -3,6 +3,9 @@
 node_modules
 out
 coverage
+output
+tmp
+tsconfig.tsbuildinfo
 .env
 .env.local
 npm-debug.log*

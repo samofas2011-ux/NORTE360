@@ -6,6 +6,7 @@ export type DbUser = {
   name: string;
   password_hash: string;
   email_verified_at: string | null;
+  email_verification_required: boolean;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -32,7 +33,7 @@ function getSql() {
   if (!url) {
     throw new DatabaseNotConfiguredError();
   }
-  return neon(url);
+  return neon(url, { fetchOptions: { signal: AbortSignal.timeout(15000) } });
 }
 
 export async function ensureAuthSchema() {
@@ -50,6 +51,7 @@ export async function ensureAuthSchema() {
   `;
 
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_required BOOLEAN NOT NULL DEFAULT FALSE`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`;
 
@@ -105,7 +107,7 @@ export async function ensureAuthSchema() {
 export async function findUserByEmail(email: string) {
   const sql = getSql();
   const rows = (await sql`
-    SELECT id, email, name, password_hash, email_verified_at, created_at, updated_at, deleted_at
+    SELECT id, email, name, password_hash, email_verified_at, email_verification_required, created_at, updated_at, deleted_at
     FROM users
     WHERE email = ${email}
       AND deleted_at IS NULL
@@ -120,17 +122,19 @@ export async function createUser({
   email,
   name,
   passwordHash,
+  verificationRequired = true,
 }: {
   id: string;
   email: string;
   name: string;
   passwordHash: string;
+  verificationRequired?: boolean;
 }) {
   const sql = getSql();
   const rows = (await sql`
-    INSERT INTO users (id, email, name, password_hash)
-    VALUES (${id}, ${email}, ${name}, ${passwordHash})
-    RETURNING id, email, name, password_hash, email_verified_at, created_at, updated_at, deleted_at
+    INSERT INTO users (id, email, name, password_hash, email_verification_required)
+    VALUES (${id}, ${email}, ${name}, ${passwordHash}, ${verificationRequired})
+    RETURNING id, email, name, password_hash, email_verified_at, email_verification_required, created_at, updated_at, deleted_at
   `) as DbUser[];
 
   return rows[0];
@@ -168,6 +172,7 @@ export async function findSessionByTokenHash(tokenHash: string) {
       AND sessions.expires_at > NOW()
       AND sessions.revoked_at IS NULL
       AND users.deleted_at IS NULL
+      AND (NOT users.email_verification_required OR users.email_verified_at IS NOT NULL)
     LIMIT 1
   `) as Array<{
       id: string;

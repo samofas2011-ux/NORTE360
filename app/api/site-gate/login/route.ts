@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { createSiteGateToken, SITE_GATE_COOKIE } from "@/lib/site-gate-token";
-import { isSameOriginRequest } from "@/lib/auth";
+import { isSameOriginRequest, checkAuthRateLimit } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,7 +19,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Acceso temporal no configurado." }, { status: 503 });
   }
 
-  const body = await request.json();
+  try {
+    if (!await checkAuthRateLimit("site_gate", request)) {
+      return NextResponse.json({ error: "Demasiados intentos. Intenta en 15 minutos." }, { status: 429 });
+    }
+  } catch {
+    return NextResponse.json({ error: "Acceso temporalmente no disponible." }, { status: 503 });
+  }
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body.username !== "string" || typeof body.password !== "string" || body.password.length > 128) {
+    return NextResponse.json({ error: "Credenciales invalidas." }, { status: 400 });
+  }
   const username = String(body.username ?? "").trim();
   const password = String(body.password ?? "");
   const passwordMatches = await bcrypt.compare(password, configuredPasswordHash);

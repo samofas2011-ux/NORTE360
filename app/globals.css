@@ -14,6 +14,23 @@
   --shadow: 0 22px 60px rgba(13, 41, 30, 0.16);
 }
 
+.saved-records { list-style: none; padding: 0; margin: 16px 0; }
+.saved-records li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.saved-records li > div, .saved-records li > span { min-width: 0; overflow-wrap: anywhere; }
+.saved-records button { padding: 8px; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; }
+.saved-records p { margin: 4px 0; }
+.advisor-form { display: flex; gap: 8px; margin: 16px 0; }
+.advisor-form input { min-width: 0; flex: 1; padding: 10px; border: 1px solid var(--line); border-radius: 4px; }
+.chat-bubble { overflow-wrap: anywhere; white-space: pre-wrap; }
+.panel > .solid-button { margin-top: 16px; }
+.panel label { min-width: 0; }
+.panel input, .panel select { max-width: 100%; }
+.status-pill.error { color: var(--danger); }
+.save-row { flex-wrap: wrap; }
+button:disabled { opacity: .55; cursor: wait; }
+meter { width: 100%; min-width: 120px; height: 24px; }
+[hidden] { display: none !important; }
+
 * {
   box-sizing: border-box;
 }

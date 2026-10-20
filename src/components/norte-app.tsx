@@ -1,4 +1,5 @@
 "use client";
+import { requestResponse } from "@/lib/client-api";
 
 import {
   ArrowRight,
@@ -23,17 +24,37 @@ import {
   ShieldCheck,
   Sparkles,
   Target,
+  Trash2,
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { LedgerEditor } from "./ledger-editor";
+import { DecisionLab } from "./decision-lab";
+import { BankingPanel } from "./banking-panel";
+import { AccountSettings } from "./account-settings";
+import { GoalPlanner } from "./goal-planner";
+import { HistoryPanel } from "./history-panel";
+import { LearningPanel } from "./learning-panel";
 import {
   buildFinancialSnapshot,
   compareExtraPaymentScenario,
   formatCRC,
+  monthlyPayment,
   type FinancialInputs,
   type RouteComparison,
 } from "@/lib/financial-engine";
+import type {
+  AdvisorMessage,
+  AppGoal,
+  AppNotification,
+  EducationalResource,
+  FamilySummary,
+  FullAppData,
+  GoalType,
+  RouteScenario,
+  SavedSimulation,
+} from "@/lib/product-db";
 
 const baseInputs: FinancialInputs = {
   monthlyIncomeCents: 180000000,
@@ -59,31 +80,27 @@ const navItems = [
   { label: "Recursos", icon: BookOpen },
 ];
 
-const routeCards = [
-  { title: "Ruta Rapida", copy: "Llegas antes", icon: Sparkles, active: true },
-  { title: "Ruta Economica", copy: "Menor costo total", icon: CircleDollarSign },
-  { title: "Ruta Balanceada", copy: "Equilibrio ideal", icon: Landmark },
-  { title: "Ruta Segura", copy: "Menor riesgo", icon: ShieldCheck },
+const routeCards: Array<{
+  title: string;
+  copy: string;
+  icon: LucideIcon;
+  scenarioType: RouteScenario["scenarioType"];
+}> = [
+  { title: "Ruta Rapida", copy: "Llegas antes", icon: Sparkles, scenarioType: "fast" },
+  { title: "Ruta Economica", copy: "Menor costo total", icon: CircleDollarSign, scenarioType: "economical" },
+  { title: "Ruta Balanceada", copy: "Equilibrio ideal", icon: Landmark, scenarioType: "balanced" },
+  { title: "Ruta Segura", copy: "Menor riesgo", icon: ShieldCheck, scenarioType: "safe" },
 ];
 
-const resourceCards = [
-  "Guia para comprar tu primera casa en Costa Rica",
-  "Como usar tu aguinaldo estrategicamente",
-  "Fondo de emergencia: cuanto y como",
-  "Interpreta la tasa de interes en Costa Rica",
-  "Libertad financiera: pasos posibles en LATAM",
-  "Errores financieros mas comunes",
-];
-
-const goalTiles: Array<{ label: string; icon: LucideIcon }> = [
-  { label: "Comprar casa", icon: Home },
-  { label: "Eliminar deudas", icon: CreditCard },
-  { label: "Comprar carro", icon: Car },
-  { label: "Fondo de emergencia", icon: PiggyBank },
-  { label: "Educacion", icon: BookOpen },
-  { label: "Retiro", icon: Landmark },
-  { label: "Construir patrimonio", icon: LineChart },
-  { label: "Personalizado", icon: Plus },
+const goalTiles: Array<{ label: string; icon: LucideIcon; goalType: GoalType }> = [
+  { label: "Comprar casa", icon: Home, goalType: "buy_home" },
+  { label: "Eliminar deudas", icon: CreditCard, goalType: "pay_debt" },
+  { label: "Comprar carro", icon: Car, goalType: "buy_car" },
+  { label: "Fondo de emergencia", icon: PiggyBank, goalType: "emergency_fund" },
+  { label: "Educacion", icon: BookOpen, goalType: "education" },
+  { label: "Retiro", icon: Landmark, goalType: "retirement" },
+  { label: "Construir patrimonio", icon: LineChart, goalType: "build_wealth" },
+  { label: "Personalizado", icon: Plus, goalType: "custom" },
 ];
 
 type NorteAppProps = {
@@ -91,9 +108,11 @@ type NorteAppProps = {
   initialInputs?: FinancialInputs;
   hasSavedProfile?: boolean;
   updatedAt?: string | null;
+  initialAppData?: FullAppData;
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+type ActionState = "idle" | "loading" | "ok" | "error";
 
 const fallbackRouteComparison: RouteComparison = {
   baseline: {
@@ -118,21 +137,68 @@ export function NorteApp({
   initialInputs = baseInputs,
   hasSavedProfile = false,
   updatedAt = null,
+  initialAppData,
 }: NorteAppProps) {
-  const [inputs, setInputs] = useState(() => initialInputs);
-  const [profileSaved, setProfileSaved] = useState(hasSavedProfile);
-  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(updatedAt);
+  const startingFinancialData = initialAppData?.financialData;
+  const [inputs, setInputs] = useState(() => startingFinancialData?.inputs ?? initialInputs);
+  const [profileSaved, setProfileSaved] = useState(startingFinancialData?.hasSavedProfile ?? hasSavedProfile);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(startingFinancialData?.updatedAt ?? updatedAt);
+  const [goals, setGoals] = useState<AppGoal[]>(() => initialAppData?.goals ?? []);
+  const [ledger, setLedger] = useState(() => initialAppData?.ledger ?? []);
+  const [routeScenarios, setRouteScenarios] = useState<RouteScenario[]>(() => initialAppData?.routeScenarios ?? []);
+  const [simulations, setSimulations] = useState<SavedSimulation[]>(() => initialAppData?.simulations ?? []);
+  const [family, setFamily] = useState<FamilySummary>(() => initialAppData?.family ?? emptyFamily());
+  const [invitations, setInvitations] = useState(() => initialAppData?.invitations ?? []);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [resources] = useState<EducationalResource[]>(() => initialAppData?.resources ?? []);
+  const [notifications, setNotifications] = useState<AppNotification[]>(() => initialAppData?.notifications ?? []);
+  const [advisorMessages, setAdvisorMessages] = useState<AdvisorMessage[]>(() => initialAppData?.advisorMessages ?? []);
+  const [selectedGoalType, setSelectedGoalType] = useState<GoalType>(() => goals[0]?.goalType ?? "buy_home");
+  const [goalName, setGoalName] = useState(goals[0]?.name ?? "Comprar casa");
+  const [goalAmount, setGoalAmount] = useState(goals[0]?.targetAmountCents ?? 0);
+  const [goalCurrent, setGoalCurrent] = useState(goals[0]?.currentAmountCents ?? 0);
+  const [goalDate, setGoalDate] = useState(goals[0]?.targetDate?.slice(0,10) ?? "");
+  const [advisorQuestion, setAdvisorQuestion] = useState("");
+  const [advisorAI,setAdvisorAI]=useState(false);
+  const [selectedRoute, setSelectedRoute] = useState<RouteScenario["scenarioType"]>("fast");
+  const [termYears, setTermYears] = useState(20);
+  const [actionState, setActionState] = useState<ActionState>("idle");
+  const [actionMessage, setActionMessage] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveMessage, setSaveMessage] = useState("");
   const snapshot = useMemo(() => buildFinancialSnapshot(inputs), [inputs]);
   const scenario = useMemo(() => getRouteComparison(inputs), [inputs]);
+  const savedFastScenario = routeScenarios.find((item) => item.scenarioType === selectedRoute);
+  const displayedScenario = savedFastScenario?.results ?? scenario;
+  const activeGoal = goals.find((goal) => goal.goalType === selectedGoalType);
+  const unreadNotifications = notifications.filter((notification) => !notification.readAt).length;
   const isProfileComplete = inputs.monthlyIncomeCents > 0 && inputs.monthlyExpenseCents > 0;
   const userInitial = userName.trim().charAt(0).toUpperCase() || "N";
   const headerDate = lastUpdatedAt ? `Actualizado ${formatDisplayDate(lastUpdatedAt)}` : "Perfil pendiente";
+  const homePayment = monthlyPayment(Math.round(inputs.targetAmountCents * (1 - inputs.targetDownPaymentBps / 10000)), inputs.annualInterestBps, termYears * 12);
+  const homeAffordable = inputs.targetAmountCents > 0 && inputs.monthlyIncomeCents > 0 && inputs.savingsCents >= inputs.targetAmountCents * inputs.targetDownPaymentBps / 10000 && homePayment + inputs.minimumPaymentCents <= inputs.monthlyIncomeCents * 0.35 && homePayment <= snapshot.monthlySurplusCents - inputs.minimumPaymentCents;
+
+  async function perform(action: () => Promise<void>) {
+    try { await action(); } catch (error) {
+      setActionState("error");
+      const message = error instanceof Error ? error.message : "No se pudo completar la operacion.";
+      setActionMessage(message);
+    }
+  }
+
+  async function removeRecord(kind: string, id: string) {
+    if (!window.confirm("Eliminar este registro?")) return;
+    const response = await requestResponse(`/api/records/${kind}/${id}`, { method: "DELETE" });
+    if (!response.ok) throw new Error("Delete failed");
+    await refreshAppData();
+    setActionState("ok");
+    setActionMessage("Registro eliminado.");
+  }
 
   function setMillions(key: keyof FinancialInputs, value: string) {
-    const numeric = Number(value.replace(/[^0-9]/g, ""));
-    setInputs((current) => ({ ...current, [key]: numeric * 100000000 }));
+    const numeric = Number(value.replace(",", "."));
+    if (!Number.isFinite(numeric) || numeric < 0) return;
+    setInputs((current) => ({ ...current, [key]: Math.round(numeric * 100000000) }));
     resetSaveMessage();
   }
 
@@ -143,8 +209,9 @@ export function NorteApp({
   }
 
   function updateMillions(key: keyof FinancialInputs, value: string) {
-    const numeric = Number(value.replace(/[^0-9]/g, ""));
-    setInputs((current) => ({ ...current, [key]: numeric * 100000000 }));
+    const numeric = Number(value.replace(",", "."));
+    if (!Number.isFinite(numeric) || numeric < 0) return;
+    setInputs((current) => ({ ...current, [key]: Math.round(numeric * 100000000) }));
     resetSaveMessage();
   }
 
@@ -159,34 +226,206 @@ export function NorteApp({
     setSaveState("saving");
     setSaveMessage("Guardando tu panorama...");
 
-    const response = await fetch("/api/financial-profile", {
-      method: "PUT",
+    try {
+      const response = await requestResponse("/api/financial-profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inputs }),
+      });
+
+      const body = (await response.json()) as {
+        inputs?: FinancialInputs;
+        hasSavedProfile?: boolean;
+        updatedAt?: string | null;
+        error?: string;
+      };
+
+      if (!response.ok || !body.inputs) {
+        setSaveState("error");
+        setSaveMessage(body.error ?? "No se pudo guardar. Intentalo de nuevo.");
+        return;
+      }
+
+      setInputs(body.inputs);
+      setProfileSaved(Boolean(body.hasSavedProfile));
+      setLastUpdatedAt(body.updatedAt ?? null);
+      setSaveState("saved");
+      setSaveMessage("Listo. Tu panorama esta guardado.");
+    } catch (error) {
+      setSaveState("error");
+      setSaveMessage(error instanceof Error ? error.message : "No se pudo guardar el panorama.");
+      return;
+    }
+    try { await refreshAppData(); } catch (error) {
+      setActionState("error");
+      setActionMessage("Tu panorama se guardo, pero no pudimos actualizar los demas paneles. " + (error instanceof Error ? error.message : "Recarga la pagina."));
+    }
+  }
+
+  async function refreshAppData() {
+    const response = await requestResponse("/api/app-data");
+    const data = (await response.json()) as FullAppData;
+    setLedger(data.ledger);
+    setInputs(current=>({...current,savingsCents:data.financialData.inputs.savingsCents,assetsCents:data.financialData.inputs.assetsCents,loanBalanceCents:data.financialData.inputs.loanBalanceCents,minimumPaymentCents:data.financialData.inputs.minimumPaymentCents,annualInterestBps:data.financialData.inputs.annualInterestBps}));
+    setGoals(data.goals);
+    setRouteScenarios(data.routeScenarios);
+    setSimulations(data.simulations);
+    setFamily(data.family);
+    setInvitations(data.invitations);
+    setNotifications(data.notifications);
+    setAdvisorMessages(data.advisorMessages);
+  }
+
+  async function saveSelectedGoal() {
+    const tile = goalTiles.find((item) => item.goalType === selectedGoalType);
+    setActionState("loading");
+    setActionMessage("Guardando tu Norte...");
+
+    const response = await requestResponse("/api/goals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: activeGoal?.id,
+        name: goalName || tile?.label || "Mi Norte",
+        goalType: selectedGoalType,
+        targetAmountCents: goalAmount,
+        currentAmountCents: goalCurrent,
+        targetDate: goalDate || null,
+        priority: 1,
+        assumptions: {
+          targetDownPaymentBps: inputs.targetDownPaymentBps,
+          extraPaymentCents: inputs.extraPaymentCents,
+        },
+      }),
+    });
+
+    await applyFullDataResponse(response, "Tu Norte quedo guardado.");
+  }
+
+  async function generateRoutes() {
+    setActionState("loading");
+    setActionMessage("Calculando y guardando rutas...");
+
+    const response = await requestResponse("/api/scenarios", {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ inputs }),
     });
+    const body = (await response.json()) as { routeScenarios?: RouteScenario[]; error?: string };
 
-    const body = (await response.json()) as {
-      inputs?: FinancialInputs;
-      hasSavedProfile?: boolean;
-      updatedAt?: string | null;
-      error?: string;
-    };
-
-    if (!response.ok || !body.inputs) {
-      setSaveState("error");
-      setSaveMessage(body.error ?? "No se pudo guardar. Intentalo de nuevo.");
+    if (!response.ok || !body.routeScenarios) {
+      setActionState("error");
+      setActionMessage(body.error ?? "No se pudieron guardar las rutas.");
       return;
     }
 
-    setInputs(body.inputs);
-    setProfileSaved(Boolean(body.hasSavedProfile));
-    setLastUpdatedAt(body.updatedAt ?? null);
-    setSaveState("saved");
-    setSaveMessage("Listo. Tu panorama esta guardado.");
+    setRouteScenarios(body.routeScenarios);
+    setActionState("ok");
+    setActionMessage("Rutas guardadas con resultados reales.");
+  }
+
+  async function runHomeSimulation() {
+    setActionState("loading");
+    setActionMessage("Guardando simulacion...");
+
+    const response = await requestResponse("/api/simulations/home-purchase", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inputs, termYears }),
+    });
+    const body = (await response.json()) as { simulations?: SavedSimulation[]; error?: string };
+
+    if (!response.ok || !body.simulations) {
+      setActionState("error");
+      setActionMessage(body.error ?? "No se pudo guardar la simulacion.");
+      return;
+    }
+
+    setSimulations(body.simulations);
+    setActionState("ok");
+    setActionMessage("Simulacion guardada en tu historial.");
+  }
+
+  async function createFamilyWorkspace() {
+    setActionState("loading");
+    setActionMessage("Creando espacio familiar...");
+
+    const response = await requestResponse("/api/family", { method: "POST" });
+    const body = (await response.json()) as { family?: FamilySummary; error?: string };
+
+    if (!response.ok || !body.family) {
+      setActionState("error");
+      setActionMessage(body.error ?? "No se pudo crear el espacio familiar.");
+      return;
+    }
+
+    setFamily(body.family);
+    setActionState("ok");
+    setActionMessage("Tu espacio familiar esta listo.");
+  }
+
+  async function familyAction(body: Record<string, unknown>) {
+    const response = await requestResponse("/api/family", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const data = await response.json();
+    if (!response.ok) { setActionMessage(data.error || "No se pudo guardar."); setActionState("error"); return; }
+    await refreshAppData();
+    setInviteEmail("");
+    setActionState("ok");
+    setActionMessage("Hogar actualizado.");
+  }
+
+  async function markAllNotificationsRead() {
+    const response = await requestResponse("/api/notifications/read", { method: "POST" });
+    const body = (await response.json()) as { notifications?: AppNotification[] };
+    if (response.ok && body.notifications) {
+      setNotifications(body.notifications);
+    }
+  }
+
+  async function askAdvisor(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setActionState("loading");
+    setActionMessage("Guardando conversacion del Advisor...");
+
+    const response = await requestResponse("/api/advisor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: advisorQuestion, mode:advisorAI?"ai":"rules",aiConsent:advisorAI }),
+    });
+    const body = (await response.json()) as { advisorMessages?: AdvisorMessage[]; error?: string };
+
+    if (!response.ok || !body.advisorMessages) {
+      setActionState("error");
+      setActionMessage(body.error ?? "El Advisor no pudo responder.");
+      return;
+    }
+
+    setAdvisorMessages(body.advisorMessages);
+    setActionState("ok");
+    setActionMessage("Conversacion guardada.");
+  }
+
+  async function applyFullDataResponse(response: Response, successMessage: string) {
+    const body = (await response.json()) as FullAppData & { error?: string };
+
+    if (!response.ok || !body.financialData) {
+      setActionState("error");
+      setActionMessage(body.error ?? "No se pudo guardar.");
+      return;
+    }
+
+    setGoals(body.goals);
+    setRouteScenarios(body.routeScenarios);
+    setSimulations(body.simulations);
+    setFamily(body.family);
+    setNotifications(body.notifications);
+    setAdvisorMessages(body.advisorMessages);
+    setActionState("ok");
+    setActionMessage(successMessage);
   }
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await requestResponse("/api/auth/logout", { method: "POST" });
     window.location.href = "/";
   }
 
@@ -205,8 +444,8 @@ export function NorteApp({
             </a>
           ))}
           <div className="sidebar-bottom">
-            <a href="#configuracion">Configuracion</a>
-            <button onClick={logout} type="button">Cerrar sesion</button>
+            <a href="#configuracion">Mi cuenta</a>
+            <button onClick={() => void perform(logout)} type="button">Cerrar sesion</button>
           </div>
         </aside>
 
@@ -218,7 +457,7 @@ export function NorteApp({
             </div>
             <div className="header-tools">
               <span>{headerDate}</span>
-              <Bell size={18} />
+              <a href="#notificaciones" title="Notificaciones"><Bell size={18} /> {unreadNotifications}</a>
               <div className="avatar">{userInitial}</div>
             </div>
           </header>
@@ -233,44 +472,44 @@ export function NorteApp({
             </div>
             <div className="form-grid profile-grid">
               <MoneyField label="Ingresos mensuales" value={inputs.monthlyIncomeCents} onChange={(value) => updateMillions("monthlyIncomeCents", value)} />
-              <MoneyField label="Gastos mensuales" value={inputs.monthlyExpenseCents} onChange={(value) => updateMillions("monthlyExpenseCents", value)} />
-              <MoneyField label="Ahorro y efectivo" value={inputs.savingsCents} onChange={(value) => updateMillions("savingsCents", value)} />
-              <MoneyField label="Activos adicionales" value={inputs.assetsCents} onChange={(value) => updateMillions("assetsCents", value)} />
-              <MoneyField label="Deuda total" value={inputs.loanBalanceCents} onChange={(value) => updateMillions("loanBalanceCents", value)} />
-              <MoneyField label="Pago minimo deuda" value={inputs.minimumPaymentCents} onChange={(value) => updateMillions("minimumPaymentCents", value)} />
-              <label>
-                Tasa de deuda
-                <input inputMode="decimal" value={inputs.annualInterestBps / 100} onChange={(event) => setPercent("annualInterestBps", event.target.value)} />
-                <span>% anual</span>
-              </label>
+              <MoneyField label="Gastos mensuales sin cuotas de deuda" value={inputs.monthlyExpenseCents} onChange={(value) => updateMillions("monthlyExpenseCents", value)} />
               <MoneyField label="Aporte extra mensual" value={inputs.extraPaymentCents} onChange={(value) => updateMillions("extraPaymentCents", value)} />
               <MoneyField label="Meta para casa" value={inputs.targetAmountCents} onChange={(value) => updateMillions("targetAmountCents", value)} />
             </div>
             <div className="save-row">
-              <button className="solid-button" disabled={saveState === "saving"} onClick={saveFinancialProfile} type="button">
+              <button className="solid-button" disabled={saveState === "saving"} onClick={() => void perform(saveFinancialProfile)} type="button">
                 {saveState === "saving" ? "Guardando" : "Guardar panorama"}
                 <ArrowRight size={17} />
               </button>
-              <span className={`status-pill ${saveState}`}>
+              <span role="status" className={`status-pill ${saveState}`}>
                 {saveMessage || (isProfileComplete ? "Datos listos para calcular" : "Agrega ingresos y gastos para empezar")}
               </span>
             </div>
           </section>
 
+          {actionMessage ? <p role="status" className={`status-pill ${actionState}`}>{actionMessage}</p> : null}
+          <LedgerEditor items={ledger} onChange={async () => {
+            const response = await requestResponse("/api/app-data");
+            if (!response.ok) throw new Error("No se pudo actualizar el Panorama.");
+            const data = await response.json() as FullAppData;
+            setLedger(data.ledger);
+            setInputs(current => ({ ...current, savingsCents: data.financialData.inputs.savingsCents, assetsCents: data.financialData.inputs.assetsCents, loanBalanceCents: data.financialData.inputs.loanBalanceCents, minimumPaymentCents: data.financialData.inputs.minimumPaymentCents, annualInterestBps: data.financialData.inputs.annualInterestBps }));
+            setFamily(data.family);
+          }} />
+          <BankingPanel onChange={refreshAppData} />
           <section className="dashboard-grid" id="mi-panorama">
             <article className="panel score-panel">
               <div className="score-ring" style={{ "--score": `${snapshot.norteScore * 3.6}deg` } as CSSProperties}>
-                <strong>{snapshot.norteScore}</strong>
+                <strong>{profileSaved ? snapshot.norteScore : "--"}</strong>
                 <span>de 100</span>
               </div>
               <div>
                 <p className="eyebrow">Norte Score</p>
-                <h3>Vas por buen camino</h3>
+                <h3>{!profileSaved ? "Completa tu Panorama" : snapshot.monthlySurplusCents <= 0 ? "Revisa tu flujo mensual" : "Tu Panorama actual"}</h3>
                 <p>
-                  Tienes una base solida. Hay oportunidades para mejorar tu
-                  ahorro y reducir deuda.
+                  Cobertura de emergencia: {snapshot.emergencyCoverageMonths} meses. Cuotas de deuda: {snapshot.debtToIncomeBps / 100}% de tus ingresos.
                 </p>
-                <a className="text-link" href="#rutas">
+                <a className="text-link" href="#mis-rutas">
                   Ver detalles <ArrowRight size={15} />
                 </a>
               </div>
@@ -280,60 +519,14 @@ export function NorteApp({
               <p>Disciplina hoy, libertad manana.</p>
             </article>
 
-            <Metric title="Ingresos mensuales" value={formatCRC(snapshot.monthlyIncomeCents)} trend="+12%" />
-            <Metric title="Gastos mensuales" value={formatCRC(snapshot.monthlyExpenseCents)} trend="-3%" tone="warn" />
-            <Metric title="Deuda total" value={formatCRC(snapshot.loanBalanceCents)} trend="-8%" />
-            <Metric title="Ahorro mensual" value={formatCRC(snapshot.monthlySurplusCents)} trend="+20%" />
-            <Metric title="Patrimonio neto" value={formatCRC(snapshot.netWorthCents)} trend="+15%" />
+            <Metric title="Ingresos mensuales" value={formatCRC(snapshot.monthlyIncomeCents)} trend="" />
+            <Metric title="Gastos sin cuotas de deuda" value={formatCRC(snapshot.monthlyExpenseCents)} trend="" />
+            <Metric title="Deuda total" value={formatCRC(snapshot.loanBalanceCents)} trend="" />
+            <Metric title="Disponible despues de cuotas" value={formatCRC(snapshot.monthlySurplusCents - inputs.minimumPaymentCents)} trend="" />
+            <Metric title="Patrimonio neto" value={formatCRC(snapshot.netWorthCents)} trend="" />
           </section>
 
-          <section className="two-column" id="mi-norte">
-            <article className="panel">
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">Mi Norte</p>
-                  <h3>Define tu destino financiero</h3>
-                </div>
-                <Target size={24} />
-              </div>
-              <div className="goal-grid">
-                {goalTiles.map(({ label, icon: Icon }) => (
-                  <button className={label === "Comprar casa" ? "goal active" : "goal"} key={label}>
-                    <Icon size={22} />
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="form-grid">
-                <label>
-                  Valor de propiedad
-                  <input inputMode="numeric" value={inputs.targetAmountCents / 100000000} onChange={(event) => setMillions("targetAmountCents", event.target.value)} />
-                  <span>millones CRC</span>
-                </label>
-                <label>
-                  Prima inicial
-                  <input inputMode="decimal" value={inputs.targetDownPaymentBps / 100} onChange={(event) => setPercent("targetDownPaymentBps", event.target.value)} />
-                  <span>%</span>
-                </label>
-                <label>
-                  Plazo
-                  <select defaultValue="20">
-                    <option>20</option>
-                    <option>25</option>
-                    <option>30</option>
-                  </select>
-                  <span>anos</span>
-                </label>
-              </div>
-            </article>
-
-            <article className="panel photo-note">
-              <div>
-                <h3>Tu casa, un paso mas cerca.</h3>
-                <p>Un mejor futuro se construye con decisiones de hoy.</p>
-              </div>
-            </article>
-          </section>
+          <GoalPlanner householdId={family.householdId} onChange={refreshAppData} />
 
           <section className="panel route-section" id="mis-rutas">
             <div className="section-heading">
@@ -345,32 +538,33 @@ export function NorteApp({
             </div>
             <div className="route-card-grid">
               {routeCards.map((card) => (
-                <button className={card.active ? "route-choice active" : "route-choice"} key={card.title}>
+                <button onClick={() => setSelectedRoute(card.scenarioType)} className={selectedRoute === card.scenarioType ? "route-choice active" : "route-choice"} key={card.title}>
                   <card.icon size={24} />
                   <strong>{card.title}</strong>
                   <span>{card.copy}</span>
                 </button>
               ))}
             </div>
+            <button className="solid-button" disabled={actionState === "loading"} onClick={() => void perform(generateRoutes)}>Calcular y guardar rutas</button>
+            {savedFastScenario ? <p>Guardada {formatDisplayDate(savedFastScenario.updatedAt)}</p> : <p>Calcula las rutas para ver los resultados guardados.</p>}
             <div className="route-result">
               <div>
-                <p className="eyebrow">Ruta Rapida</p>
+                <p className="eyebrow">{savedFastScenario?.name ?? "Vista previa de deuda"}</p>
                 <h4>
-                  Llegada estimada <strong>{scenario.optimized.debtFreeYear}</strong>
+                  Meses para cancelar <strong>{displayedScenario.optimized.months || "Sin estimacion"}</strong>
                 </h4>
-                <span className="pill">{scenario.yearsSaved} anos antes</span>
+                <span className="pill">{displayedScenario.monthsSaved} meses antes</span>
                 <div className="route-stats">
                   <span>Pago mensual</span>
-                  <strong>{formatCRC(scenario.optimized.monthlyPaymentCents)}</strong>
+                  <strong>{formatCRC(displayedScenario.optimized.monthlyPaymentCents)}</strong>
                   <span>Interes evitado</span>
-                  <strong>{formatCRC(scenario.interestSavedCents)}</strong>
+                  <strong>{formatCRC(displayedScenario.interestSavedCents)}</strong>
                 </div>
               </div>
-              <div className="chart" aria-label="Comparacion de rutas">
-                <span className="line current" />
-                <span className="line optimized" />
-                <b>Ruta actual<br />{scenario.baseline.debtFreeYear}</b>
-                <em>Llegas antes<br />{scenario.optimized.debtFreeYear}</em>
+              <div>
+                <p>Actual: {displayedScenario.baseline.months} meses</p>
+                <meter min={0} max={Math.max(displayedScenario.baseline.months, 1)} value={displayedScenario.optimized.months} aria-label="Meses de la ruta seleccionada" />
+                {savedFastScenario ? <button title="Eliminar ruta" onClick={() => void perform(() => removeRecord("scenarios", savedFastScenario.id))}><Trash2 size={16} /></button> : null}
               </div>
             </div>
           </section>
@@ -383,11 +577,6 @@ export function NorteApp({
                   <h3>Simulador de compra de casa</h3>
                 </div>
                 <Compass size={24} />
-              </div>
-              <div className="tabs">
-                {["Casa", "Carro", "Consolidar deuda", "Invertir vs Deuda"].map((tab) => (
-                  <button className={tab === "Casa" ? "active" : ""} key={tab}>{tab}</button>
-                ))}
               </div>
               <div className="form-grid">
                 <label>
@@ -406,69 +595,89 @@ export function NorteApp({
                   <span>% anual</span>
                 </label>
               </div>
+              <label>Plazo en anos<select value={termYears} onChange={event => setTermYears(Number(event.target.value))}>{[5,10,15,20,25,30].map(year => <option key={year} value={year}>{year}</option>)}</select></label>
+              <button className="solid-button" disabled={actionState === "loading"} onClick={() => void perform(runHomeSimulation)}>Simular y guardar</button>
+              <ul className="saved-records">{simulations.filter(item => item.simulationType === "home_purchase").map(simulation => <li key={simulation.id}><button onClick={() => {
+                setInputs(current => ({ ...current, ...simulation.inputs } as FinancialInputs));
+                setTermYears(Number(simulation.inputs.termYears) || 20);
+              }}>{formatDisplayDate(simulation.createdAt)}: {formatCRC(Number(simulation.results.paymentCents) || 0)}/mes</button><button title="Eliminar simulacion" onClick={() => void perform(() => removeRecord("simulations", simulation.id))}><Trash2 size={16} /></button></li>)}</ul>
             </article>
 
             <article className="panel results-card">
               <p className="eyebrow">Resultados</p>
-              <h3>{formatCRC(snapshot.estimatedHomePaymentCents)}</h3>
-              <p>Pago mensual estimado para una hipoteca a 20 anos.</p>
+              <h3>{formatCRC(homePayment)}</h3>
+              <p>Cuota estimada a {termYears} anos, sin seguros, comisiones ni gastos de cierre.</p>
               <div className="good-news">
                 <BadgeCheck size={22} />
                 <div>
-                  <strong>Puedes hacerlo</strong>
-                  <span>Esta opcion se ajusta a tu situacion actual.</span>
+                  <strong>{homeAffordable ? "Dentro del presupuesto estimado" : "Revisa tu presupuesto"}</strong>
+                  <span>{homeAffordable ? "Tienes la prima y flujo para la cuota estimada." : "Revisa la prima disponible, tus gastos y las cuotas actuales."}</span>
                 </div>
               </div>
-              <ul className="impact-list">
-                <li>Tu fecha de libertad financiera se moveria {scenario.yearsSaved} anos antes.</li>
-                <li>Intereses potencialmente evitados: {formatCRC(scenario.interestSavedCents)}.</li>
-              </ul>
             </article>
           </section>
 
+          <DecisionLab simulations={simulations} onChange={refreshAppData} />
           <section className="two-column" id="norte360-advisor">
             <article className="panel advisor">
               <p className="eyebrow">Norte360 Advisor</p>
-              <h3>Te explico el camino</h3>
-              <div className="chat-bubble user">Me conviene aportar extra a mi deuda?</div>
-              <div className="chat-bubble bot">
-                Con tus datos actuales, aportar {formatCRC(inputs.extraPaymentCents)} adicionales al mes podria adelantar tu Norte
-                y evitar cerca de {formatCRC(scenario.interestSavedCents)} en intereses. Mantendria tu fondo de emergencia primero.
-              </div>
+              <h3>Analisis de tu Panorama</h3>
+              <p>Orientacion automatica basada en tus cifras guardadas.</p>
+              <label className="check-line"><input type="checkbox" checked={advisorAI} onChange={event=>setAdvisorAI(event.target.checked)}/>Consultar con IA: autorizo compartir mi pregunta y resumen financiero con OpenAI.</label>
+              {advisorMessages.map(message => <div key={message.id} className={`chat-bubble ${message.role === "user" ? "user" : "bot"}`}>{message.content}</div>)}
+              <form onSubmit={event => { event.preventDefault(); void perform(() => askAdvisor(event)); }} className="advisor-form">
+                <input aria-label="Pregunta al Advisor" value={advisorQuestion} maxLength={500} minLength={3} required onChange={event => setAdvisorQuestion(event.target.value)} />
+                <button className="solid-button" disabled={actionState === "loading"}>Consultar</button>
+              </form>
+              {advisorMessages.length > 0 ? <button title="Eliminar conversacion" onClick={() => void perform(async () => {
+                if (!window.confirm("Eliminar la conversacion?")) return;
+                const response = await requestResponse("/api/advisor", { method: "DELETE" });
+                if (!response.ok) throw new Error("Delete failed");
+                setAdvisorMessages([]);
+              })}><Trash2 size={16} /></button> : null}
             </article>
 
             <article className="panel family" id="mi-familia">
               <p className="eyebrow">Mi Familia</p>
               <h3>Un mismo Norte, mas posibilidades.</h3>
               <div className="family-row">
-                {["Fabian", "Maria Jose", "Daniel"].map((name) => (
-                  <span key={name}>{name}</span>
+                {family.members.map(member => (
+                  <span key={member.id}>{member.name} ({member.acceptedAt ? member.role : "Invitacion pendiente"}){member.role !== "owner" ? <button title="Retirar miembro" onClick={() => void perform(() => familyAction({ operation: "remove", id: member.id }))}><Trash2 size={14} /></button> : null}</span>
                 ))}
-                <button aria-label="Agregar familiar"><Plus size={18} /></button>
               </div>
-              <Metric title="Panorama familiar" value={formatCRC(340000000)} trend="+ objetivo compartido" />
+              {family.householdId ? <>
+                {family.canManage ? <form onSubmit={event => { event.preventDefault(); void perform(() => familyAction({ operation: "invite", email: inviteEmail })); }}>
+                  <label>Email de una cuenta registrada<input type="email" required value={inviteEmail} onChange={event => setInviteEmail(event.target.value)} /></label>
+                  <button className="solid-button">Invitar al hogar</button>
+                </form> : null}
+                <label>Nombre del hogar<input disabled={!family.canManage} value={family.name} onChange={event => setFamily(current => ({ ...current, name: event.target.value }))} /></label>
+                <button disabled={!family.canManage} className="solid-button" onClick={() => void perform(async () => {
+                  const response = await requestResponse("/api/family", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: family.name }) });
+                  if (!response.ok) throw new Error("Save failed");
+                  await refreshAppData();
+                })}>Guardar nombre</button>
+                <p>Patrimonio del hogar: {formatCRC(family.netWorthCents)}</p>
+                <button disabled={!family.canManage} title="Archivar hogar" onClick={() => void perform(async () => {
+                  if (!window.confirm("Archivar este hogar?")) return;
+                  const response = await requestResponse("/api/family", { method: "DELETE" });
+                  if (!response.ok) throw new Error("Delete failed");
+                  await refreshAppData();
+                })}><Trash2 size={16} /></button>
+              </> : <button className="solid-button" onClick={() => void perform(createFamilyWorkspace)}>Crear mi hogar</button>}
+              {invitations.map(invitation => <div key={invitation.id}><p>Invitacion: {invitation.name}. Al aceptar compartes tus totales financieros con este hogar.</p><button onClick={() => void perform(() => familyAction({ operation: "accept", id: invitation.id }))}>Aceptar</button><button onClick={() => void perform(() => familyAction({ operation: "remove", id: invitation.id }))}>Rechazar</button></div>)}
             </article>
           </section>
 
-          <section className="panel resources" id="recursos">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">Recursos</p>
-                <h3>Aprende a tu ritmo</h3>
-              </div>
-              <BookOpen size={24} />
-            </div>
-            <div className="resource-grid">
-              {resourceCards.map((title, index) => (
-                <article key={title}>
-                  <span>{index % 2 ? "Articulo" : "Video"} · {8 + index} min</span>
-                  <h4>{title}</h4>
-                </article>
-              ))}
-            </div>
-          </section>
+          <LearningPanel />
 
-          <section className="roadmap" id="roadmap">
+          <section className="panel" id="notificaciones">
+            <h3>Notificaciones</h3>
+            <button onClick={() => void perform(markAllNotificationsRead)}>Marcar todas como leidas</button>
+            <ul className="saved-records">{notifications.map(item => <li key={item.id}><div><strong>{item.title}{item.readAt ? "" : " (Nueva)"}</strong><p>{item.body}</p></div><button title="Eliminar notificacion" onClick={() => void perform(() => removeRecord("notifications", item.id))}><Trash2 size={16} /></button></li>)}</ul>
+          </section>
+          <HistoryPanel onChange={refreshAppData} />
+          <AccountSettings />
+          <section className="roadmap" id="roadmap" hidden>
             <p className="eyebrow">Roadmap de producto</p>
             <h2>Una ruta de construccion por fases</h2>
             <div className="roadmap-grid">
@@ -493,6 +702,10 @@ export function NorteApp({
   );
 }
 
+function emptyFamily(): FamilySummary {
+  return { canManage: false, householdId: null, name: "Mi Familia", members: [], monthlyIncomeCents: 0, monthlyExpenseCents: 0, netWorthCents: 0 };
+}
+
 function MoneyField({
   label,
   value,
@@ -502,10 +715,12 @@ function MoneyField({
   value: number;
   onChange: (value: string) => void;
 }) {
+  const [draft, setDraft] = useState(String(value / 100000000));
+  useEffect(() => { setDraft(String(value / 100000000)); }, [value]);
   return (
     <label>
       {label}
-      <input inputMode="numeric" value={value / 100000000} onChange={(event) => onChange(event.target.value)} />
+      <input inputMode="decimal" value={draft} onChange={event => setDraft(event.target.value)} onBlur={() => onChange(draft)} />
       <span>millones CRC</span>
     </label>
   );

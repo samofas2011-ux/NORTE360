@@ -46,12 +46,12 @@ export function SiteGateForm() {
         <input name="username" autoComplete="username" required />
       </label>
       <label>
-        Password
+        Contraseña
         <input name="password" type="password" autoComplete="current-password" required />
       </label>
       {error ? <p className="form-error">{error}</p> : null}
       <button className="solid-button wide" disabled={status === "loading"} type="submit">
-        {status === "loading" ? "Verificando..." : "Entrar"}
+        {status === "loading" ? "Verificando…" : "Entrar"}
         <ArrowRight size={16} />
       </button>
     </form>

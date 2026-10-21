@@ -97,11 +97,11 @@ export function AuthForm({ mode }: { mode: Mode }) {
               {isCreate ? <span>Mínimo 15 caracteres; máximo 72 bytes. Algunos símbolos y letras ocupan más de un byte.</span> : null}
             </label>
             {isCreate ? <label>Confirma tu contraseña<input name="confirmPassword" type={showPassword ? "text" : "password"} autoComplete="new-password" minLength={15} maxLength={72} required /></label> : null}
-            <label style={{display:"flex",alignItems:"center",gap:8}}><input style={{width:"auto"}} type="checkbox" checked={showPassword} onChange={event=>setShowPassword(event.target.checked)} />Mostrar contraseña</label>
+            <label className="check-line"><input type="checkbox" checked={showPassword} onChange={event=>setShowPassword(event.target.checked)} />Mostrar contraseña</label>
             {error ? <p className="form-error" role="alert">{error}</p> : null}
             {needsVerification ? <Link href="/account-action#purpose=verify">Reenviar correo de confirmación</Link> : null}
             <button className="solid-button wide" type="submit" disabled={status === "loading"}>
-              {status === "loading" ? "Procesando..." : isCreate ? "Crear cuenta" : "Iniciar sesion"}
+              {status === "loading" ? "Procesando…" : isCreate ? "Crear cuenta" : "Iniciar sesión"}
               <ArrowRight size={16} />
             </button>
           </form>}

@@ -18,6 +18,7 @@
 .saved-records li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .saved-records li > div, .saved-records li > span { min-width: 0; overflow-wrap: anywhere; }
 .saved-records button { padding: 8px; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; }
+.saved-records button { min-width: 44px; min-height: 44px; }
 .saved-records p { margin: 4px 0; }
 .advisor-form { display: flex; gap: 8px; margin: 16px 0; }
 .advisor-form input { min-width: 0; flex: 1; padding: 10px; border: 1px solid var(--line); border-radius: 4px; }
@@ -48,8 +49,19 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
+}
+
+button,
+input,
+select,
+textarea,
+a,
+summary {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(14, 98, 69, 0.16);
 }
 
 a {
@@ -608,7 +620,7 @@ label {
 input,
 select {
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0 12px;
@@ -618,6 +630,19 @@ select {
 
 label span {
   font-weight: 600;
+}
+
+.check-line {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+}
+
+.check-line input[type="checkbox"] {
+  flex: 0 0 18px;
+  width: 18px;
+  min-height: 18px;
 }
 
 .photo-note {
@@ -1034,8 +1059,8 @@ label span {
 }
 
 .auth-page {
-  min-height: 100vh;
-  padding: 20px;
+  min-height: 100svh;
+  padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
   background:
     linear-gradient(90deg, rgba(237, 246, 239, 0.97), rgba(237, 246, 239, 0.58)),
     url("https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=2200&q=82");
@@ -1093,13 +1118,16 @@ label span {
 }
 
 .auth-switch a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
   color: var(--green);
   font-weight: 900;
 }
 
 .coming-soon-page {
-  min-height: 100vh;
-  padding: 20px;
+  min-height: 100svh;
+  padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
   background:
     linear-gradient(90deg, rgba(237, 246, 239, 0.98), rgba(237, 246, 239, 0.54)),
     url("https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=2200&q=82");
@@ -1293,6 +1321,19 @@ label span {
   background-size: 72px 72px;
 }
 
+.app-skip {
+  position: fixed;
+  z-index: 100;
+  top: 8px;
+  left: 10px;
+  padding: 12px;
+  background: #fff;
+  color: #153e30;
+  transform: translateY(-150%);
+}
+
+.app-skip:focus { transform: translateY(0); }
+
 .app-topbar {
   position: sticky;
   z-index: 50;
@@ -1310,6 +1351,7 @@ label span {
 }
 
 .app-topbar .side-brand {
+  min-height: 44px;
   margin: 0;
   color: #153e30;
   font-family: Georgia, "Times New Roman", serif;
@@ -1371,6 +1413,8 @@ label span {
 }
 
 .app-account a { text-decoration: none; }
+.app-account a,
+.app-account button { min-width: 44px; min-height: 44px; }
 .app-account button {
   border: 0;
   background: transparent;
@@ -1539,7 +1583,7 @@ label span {
 }
 .home-card-kicker > a {
   display: inline-flex;
-  min-height: 38px;
+  min-height: 44px;
   align-items: center;
   gap: 6px;
   margin-left: auto;
@@ -1575,7 +1619,10 @@ label span {
 .goal-progress > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #0e6245, #08785a); }
 .progress-caption { display: block; margin-top: 7px; color: #33443d; font-size: .84rem; }
 .home-card-actions { display: flex; align-items: center; gap: 28px; margin-top: 22px; }
-.home-card-actions .solid-button { min-height: 42px; }
+.home-card-actions .solid-button { min-height: 44px; }
+.home-card-actions .text-link,
+.recent-activity-card .text-link,
+.score-summary .text-link { min-height: 44px; }
 
 .progress-ring {
   display: grid;
@@ -1746,6 +1793,8 @@ meter { accent-color: #0e6245; }
   .executive-hero { min-height: 260px; align-items: start; flex-direction: column; }
   .executive-hero .header-tools { justify-items: start; text-align: left; }
   .workspace { padding-inline: 12px; }
+  .executive-hero,
+  .module-hero { margin-inline: -12px; }
   .home-overview { grid-template-columns: 1fr; }
   .next-step-card,
   .home-score-card,
@@ -1957,7 +2006,7 @@ meter { accent-color: #0e6245; }
 }
 
 @media (max-width: 700px) {
-  .module-hero { grid-template-columns: 1fr; min-height: 180px; padding: 28px 20px; }
+  .module-hero { grid-template-columns: 1fr; min-height: 180px; margin-inline: -12px; padding: 28px 20px; }
   .module-hero-art { display: none; }
   .module-hero h1 { font-size: clamp(2.4rem, 13vw, 3.5rem); }
   .route-card-grid,

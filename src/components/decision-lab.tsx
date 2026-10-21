@@ -49,11 +49,11 @@ export function DecisionLab({ simulations, onChange, type, onTypeChange }: { sim
     <h4 className="saved-scenarios-title">Escenarios guardados</h4>
     <ul className="saved-records">{simulations.filter(item => Object.hasOwn(decisionTypes, item.simulationType)).map(item => <li key={item.id}>
       <button onClick={() => { onTypeChange(item.simulationType as DecisionType); window.setTimeout(() => { setValues(item.inputs as Record<string,number>); setResults((item.results.values ?? []) as DecisionResults); }); }}>{decisionTypes[item.simulationType as DecisionType].label} · {new Date(item.createdAt).toLocaleDateString("es-CR")}</button>
-      <button disabled={busy} title="Eliminar simulacion" onClick={async () => {
+      <button aria-label="Eliminar simulación" disabled={busy} title="Eliminar simulación" onClick={async () => {
         if (!window.confirm("Eliminar esta simulacion?")) return;
         setBusy(true);
         try { const response = await requestResponse(`/api/records/simulations/${item.id}`, { method: "DELETE" }); if (!response.ok) throw new Error(); await onChange(); } catch { setMessage("No se pudo eliminar."); } finally { setBusy(false); }
-      }}><Trash2 size={16} /></button>
+      }}><Trash2 size={16} aria-hidden="true" /></button>
     </li>)}</ul>
   </section>;
 }

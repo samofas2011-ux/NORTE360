@@ -21,6 +21,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { ProductExplorer } from "@/components/product-explorer";
+import { MobileMarketingMenu } from "@/components/mobile-marketing-menu";
 import styles from "./marketing.module.css";
 
 export const metadata: Metadata = {
@@ -57,7 +58,7 @@ export default function MarketingPage() {
           <Link href="/" className={styles.brand}><Mountain size={31} aria-hidden="true" />Norte360</Link>
           <div className={styles.navlinks}><a href="#como-funciona">Cómo funciona</a><a href="#producto">Producto</a><a href="#confianza">Confianza</a><a href="#preguntas">Preguntas</a></div>
           <div className={styles.actions}><Link className={styles.login} href="/login">Iniciar sesión</Link><Link className={styles.primary} href="/create-account">Crear cuenta <ArrowRight size={16} aria-hidden="true" /></Link></div>
-          <details className={styles.mobileMenu}><summary aria-label="Abrir navegación"><span>Menú</span><ChevronDown size={20} /></summary><div><a href="#como-funciona">Cómo funciona</a><a href="#producto">Producto</a><a href="#confianza">Confianza</a><a href="#preguntas">Preguntas</a><Link href="/login">Iniciar sesión</Link></div></details>
+          <MobileMarketingMenu className={styles.mobileMenu} />
         </nav>
       </header>
 

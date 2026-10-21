@@ -507,6 +507,7 @@ export function NorteApp({
   return (
     <main>
       <section className="app-shell" id="app">
+        <a className="app-skip" href="#module-content">Ir al contenido</a>
         <header className="app-topbar">
           <a className="side-brand" href="#inicio" aria-label="Norte360 Inicio" onClick={(event) => followModuleLink(event, "inicio")}>
             <Mountain size={26} />
@@ -520,7 +521,7 @@ export function NorteApp({
             ))}
           </nav>
           <div className="app-account">
-            <a aria-current={activeModule === "notificaciones" ? "page" : undefined} className="notification-link" href="#notificaciones" title="Notificaciones" onClick={(event) => followModuleLink(event, "notificaciones")}><Bell size={18} /><span>{unreadNotifications}</span></a>
+            <a aria-current={activeModule === "notificaciones" ? "page" : undefined} aria-label={`Notificaciones: ${unreadNotifications} sin leer`} className="notification-link" href="#notificaciones" title="Notificaciones" onClick={(event) => followModuleLink(event, "notificaciones")}><Bell size={18} aria-hidden="true" /><span aria-hidden="true">{unreadNotifications}</span></a>
             <a aria-current={activeModule === "configuracion" ? "page" : undefined} className="account-link" href="#configuracion" onClick={(event) => followModuleLink(event, "configuracion")}><span className="avatar">{userInitial}</span><span>{userName}</span></a>
             <button onClick={() => void perform(logout)} type="button">Salir</button>
           </div>
@@ -722,7 +723,7 @@ export function NorteApp({
               <div>
                 <p>Actual: {displayedScenario.baseline.months} meses</p>
                 <meter min={0} max={Math.max(displayedScenario.baseline.months, 1)} value={displayedScenario.optimized.months} aria-label="Meses de la ruta seleccionada" />
-                {savedFastScenario ? <button title="Eliminar ruta" onClick={() => void perform(() => removeRecord("scenarios", savedFastScenario.id))}><Trash2 size={16} /></button> : null}
+                {savedFastScenario ? <button aria-label="Eliminar ruta" title="Eliminar ruta" onClick={() => void perform(() => removeRecord("scenarios", savedFastScenario.id))}><Trash2 size={16} aria-hidden="true" /></button> : null}
               </div>
             </div>
           </section>
@@ -765,7 +766,7 @@ export function NorteApp({
               <ul className="saved-records">{simulations.filter(item => item.simulationType === "home_purchase").map(simulation => <li key={simulation.id}><button onClick={() => {
                 setInputs(current => ({ ...current, ...simulation.inputs } as FinancialInputs));
                 setTermYears(Number(simulation.inputs.termYears) || 20);
-              }}>{formatDisplayDate(simulation.createdAt)}: {formatCRC(Number(simulation.results.paymentCents) || 0)}/mes</button><button title="Eliminar simulacion" onClick={() => void perform(() => removeRecord("simulations", simulation.id))}><Trash2 size={16} /></button></li>)}</ul>
+              }}>{formatDisplayDate(simulation.createdAt)}: {formatCRC(Number(simulation.results.paymentCents) || 0)}/mes</button><button aria-label="Eliminar simulación" title="Eliminar simulación" onClick={() => void perform(() => removeRecord("simulations", simulation.id))}><Trash2 size={16} aria-hidden="true" /></button></li>)}</ul>
             </article>
 
             <article className="panel results-card">
@@ -797,12 +798,12 @@ export function NorteApp({
                 <input aria-label="Pregunta al Advisor" value={advisorQuestion} maxLength={500} minLength={3} required onChange={event => setAdvisorQuestion(event.target.value)} />
                 <button className="solid-button" disabled={actionState === "loading"}>Consultar</button>
               </form>
-              {advisorMessages.length > 0 ? <button title="Eliminar conversacion" onClick={() => void perform(async () => {
+              {advisorMessages.length > 0 ? <button aria-label="Eliminar conversación" title="Eliminar conversación" onClick={() => void perform(async () => {
                 if (!window.confirm("Eliminar la conversacion?")) return;
                 const response = await requestResponse("/api/advisor", { method: "DELETE" });
                 if (!response.ok) throw new Error("Delete failed");
                 setAdvisorMessages([]);
-              })}><Trash2 size={16} /></button> : null}
+              })}><Trash2 size={16} aria-hidden="true" /></button> : null}
             </article>
           </section>
           </section>
@@ -815,7 +816,7 @@ export function NorteApp({
               <h3>Un mismo Norte, mas posibilidades.</h3>
               <div className="family-row">
                 {family.members.map(member => (
-                  <span key={member.id}>{member.name} ({member.acceptedAt ? member.role : "Invitacion pendiente"}){member.role !== "owner" ? <button title="Retirar miembro" onClick={() => void perform(() => familyAction({ operation: "remove", id: member.id }))}><Trash2 size={14} /></button> : null}</span>
+                  <span key={member.id}>{member.name} ({member.acceptedAt ? member.role : "Invitación pendiente"}){member.role !== "owner" ? <button aria-label={`Retirar a ${member.name}`} title="Retirar miembro" onClick={() => void perform(() => familyAction({ operation: "remove", id: member.id }))}><Trash2 size={14} aria-hidden="true" /></button> : null}</span>
                 ))}
               </div>
               {family.householdId ? <>
@@ -830,12 +831,12 @@ export function NorteApp({
                   await refreshAppData();
                 })}>Guardar nombre</button>
                 <p>Patrimonio del hogar: {formatCRC(family.netWorthCents)}</p>
-                <button disabled={!family.canManage} title="Archivar hogar" onClick={() => void perform(async () => {
+                <button aria-label="Archivar hogar" disabled={!family.canManage} title="Archivar hogar" onClick={() => void perform(async () => {
                   if (!window.confirm("Archivar este hogar?")) return;
                   const response = await requestResponse("/api/family", { method: "DELETE" });
                   if (!response.ok) throw new Error("Delete failed");
                   await refreshAppData();
-                })}><Trash2 size={16} /></button>
+                })}><Trash2 size={16} aria-hidden="true" /></button>
               </> : <button className="solid-button" onClick={() => void perform(createFamilyWorkspace)}>Crear mi hogar</button>}
               {invitations.map(invitation => <div key={invitation.id}><p>Invitacion: {invitation.name}. Al aceptar compartes tus totales financieros con este hogar.</p><button onClick={() => void perform(() => familyAction({ operation: "accept", id: invitation.id }))}>Aceptar</button><button onClick={() => void perform(() => familyAction({ operation: "remove", id: invitation.id }))}>Rechazar</button></div>)}
             </article>
@@ -852,7 +853,7 @@ export function NorteApp({
           <section className="panel" id="notificaciones">
             <h3>Notificaciones</h3>
             <button onClick={() => void perform(markAllNotificationsRead)}>Marcar todas como leidas</button>
-            <ul className="saved-records">{notifications.map(item => <li key={item.id}><div><strong>{item.title}{item.readAt ? "" : " (Nueva)"}</strong><p>{item.body}</p></div><button title="Eliminar notificacion" onClick={() => void perform(() => removeRecord("notifications", item.id))}><Trash2 size={16} /></button></li>)}</ul>
+            <ul className="saved-records">{notifications.map(item => <li key={item.id}><div><strong>{item.title}{item.readAt ? "" : " (Nueva)"}</strong><p>{item.body}</p></div><button aria-label={`Eliminar notificación: ${item.title}`} title="Eliminar notificación" onClick={() => void perform(() => removeRecord("notifications", item.id))}><Trash2 size={16} aria-hidden="true" /></button></li>)}</ul>
           </section>
           </section>
           <section className="app-module" data-module="historial" hidden={activeModule !== "historial"}>

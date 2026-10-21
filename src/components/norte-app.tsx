@@ -74,8 +74,8 @@ const navItems = [
   { label: "Mi Panorama", icon: Gauge },
   { label: "Mi Norte", icon: Target },
   { label: "Mis Rutas", icon: Route },
-  { label: "Decisiones", icon: Compass },
-  { label: "Norte360 Advisor", icon: Bot },
+  { label: "Decision Lab", icon: Compass, href: "decisiones" },
+  { label: "Advisor", icon: Bot, href: "norte360-advisor" },
   { label: "Mi Familia", icon: Users },
   { label: "Recursos", icon: BookOpen },
 ];
@@ -432,37 +432,39 @@ export function NorteApp({
   return (
     <main>
       <section className="app-shell" id="app">
-        <aside className="sidebar" aria-label="Navegacion de aplicacion">
-          <div className="side-brand">
+        <header className="app-topbar">
+          <a className="side-brand" href="#inicio" aria-label="Norte360 Inicio">
             <Mountain size={26} />
             <strong>Norte360</strong>
+          </a>
+          <nav className="app-nav" aria-label="Navegacion principal">
+            {navItems.map((item, index) => (
+              <a className={index === 0 ? "active" : ""} href={`#${item.href ?? slug(item.label)}`} key={item.label}>
+                {item.label}
+              </a>
+            ))}
+          </nav>
+          <div className="app-account">
+            <a className="notification-link" href="#notificaciones" title="Notificaciones"><Bell size={18} /><span>{unreadNotifications}</span></a>
+            <a className="account-link" href="#configuracion"><span className="avatar">{userInitial}</span><span>{userName}</span></a>
+            <button onClick={() => void perform(logout)} type="button">Salir</button>
           </div>
-          {navItems.map((item, index) => (
-            <a className={index === 0 ? "active" : ""} href={`#${slug(item.label)}`} key={item.label}>
-              <item.icon size={17} />
-              {item.label}
-            </a>
-          ))}
-          <div className="sidebar-bottom">
-            <a href="#configuracion">Mi cuenta</a>
-            <button onClick={() => void perform(logout)} type="button">Cerrar sesion</button>
-          </div>
-        </aside>
+        </header>
 
         <section className="workspace">
-          <header className="workspace-header">
+          <header className="workspace-header executive-hero" id="inicio">
             <div>
+              <p className="eyebrow">Tu panorama financiero</p>
               <h2>Hola, {userName}</h2>
-              <p>{profileSaved ? "Aqui esta tu panorama financiero." : "Completa tus datos para activar tu panorama real."}</p>
+              <p>{profileSaved ? "Este es el proximo paso mas util para avanzar." : "Completa tus datos para activar tu panorama real."}</p>
             </div>
             <div className="header-tools">
               <span>{headerDate}</span>
-              <a href="#notificaciones" title="Notificaciones"><Bell size={18} /> {unreadNotifications}</a>
-              <div className="avatar">{userInitial}</div>
+              <strong>Un paso claro hoy vale mas que diez planes sin empezar.</strong>
             </div>
           </header>
 
-          <section className="panel data-entry-panel" id="inicio">
+          <section className="panel data-entry-panel executive-section">
             <div className="section-heading">
               <div>
                 <p className="eyebrow">{profileSaved ? "Panorama guardado" : "Primer paso"}</p>

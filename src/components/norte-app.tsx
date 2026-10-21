@@ -177,6 +177,22 @@ export function NorteApp({
   const headerDate = lastUpdatedAt ? `Actualizado ${formatDisplayDate(lastUpdatedAt)}` : "Perfil pendiente";
   const homePayment = monthlyPayment(Math.round(inputs.targetAmountCents * (1 - inputs.targetDownPaymentBps / 10000)), inputs.annualInterestBps, termYears * 12);
   const homeAffordable = inputs.targetAmountCents > 0 && inputs.monthlyIncomeCents > 0 && inputs.savingsCents >= inputs.targetAmountCents * inputs.targetDownPaymentBps / 10000 && homePayment + inputs.minimumPaymentCents <= inputs.monthlyIncomeCents * 0.35 && homePayment <= snapshot.monthlySurplusCents - inputs.minimumPaymentCents;
+  const greetingDate = new Intl.DateTimeFormat("es-CR", { weekday: "long", day: "numeric", month: "long" }).format(new Date());
+  const nextGoal = goals.find((goal) => goal.status === "active" && goal.goalType === "emergency_fund" && goal.currentAmountCents < goal.targetAmountCents)
+    ?? goals.find((goal) => goal.status === "active" && goal.currentAmountCents < goal.targetAmountCents);
+  const referenceEmergencyTarget = inputs.monthlyExpenseCents * 3;
+  const nextGoalTarget = nextGoal?.targetAmountCents || referenceEmergencyTarget;
+  const nextGoalCurrent = nextGoal?.currentAmountCents ?? inputs.savingsCents;
+  const nextGoalProgress = nextGoalTarget > 0 ? Math.min(100, Math.round((nextGoalCurrent / nextGoalTarget) * 100)) : 0;
+  const nextGoalGap = Math.max(0, nextGoalTarget - nextGoalCurrent);
+  const activeRouteOverview = routeScenarios.find((route) => route.scenarioType === "balanced") ?? routeScenarios[0];
+  const pendingSimulation = [...simulations].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0];
+  const recentActivity = [
+    ...notifications.map((item) => ({ id: `notification-${item.id}`, title: item.title, date: item.createdAt, icon: Bell })),
+    ...routeScenarios.map((item) => ({ id: `route-${item.id}`, title: `Guardaste ${item.name}`, date: item.updatedAt, icon: Route })),
+    ...simulations.map((item) => ({ id: `simulation-${item.id}`, title: `Simulaste ${simulationLabel(item.simulationType)}`, date: item.createdAt, icon: Compass })),
+    ...goals.map((item) => ({ id: `goal-${item.id}`, title: `Actualizaste ${item.name}`, date: item.updatedAt, icon: Target })),
+  ].sort((a, b) => Date.parse(b.date) - Date.parse(a.date)).slice(0, 3);
 
   async function perform(action: () => Promise<void>) {
     try { await action(); } catch (error) {
@@ -439,7 +455,7 @@ export function NorteApp({
           </a>
           <nav className="app-nav" aria-label="Navegacion principal">
             {navItems.map((item, index) => (
-              <a className={index === 0 ? "active" : ""} href={`#${item.href ?? slug(item.label)}`} key={item.label}>
+              <a aria-current={index === 0 ? "page" : undefined} className={index === 0 ? "active" : ""} href={`#${item.href ?? slug(item.label)}`} key={item.label}>
                 {item.label}
               </a>
             ))}
@@ -454,9 +470,9 @@ export function NorteApp({
         <section className="workspace">
           <header className="workspace-header executive-hero" id="inicio">
             <div>
-              <p className="eyebrow">Tu panorama financiero</p>
-              <h2>Hola, {userName}</h2>
-              <p>{profileSaved ? "Este es el proximo paso mas util para avanzar." : "Completa tus datos para activar tu panorama real."}</p>
+              <p className="home-date">{greetingDate}</p>
+              <h1>Buenos días, {userName}</h1>
+              <p>{profileSaved ? "Este es el próximo paso más útil para avanzar." : "Completa tus datos para activar tu panorama real."}</p>
             </div>
             <div className="header-tools">
               <span>{headerDate}</span>
@@ -464,7 +480,76 @@ export function NorteApp({
             </div>
           </header>
 
-          <section className="panel data-entry-panel executive-section">
+          <section className="home-overview" aria-label="Resumen de inicio">
+            <article className="panel next-step-card">
+              <div className="home-card-copy">
+                <div className="home-card-kicker"><Target size={22} aria-hidden="true" /><strong>Tu próximo paso</strong><span>Recomendado</span></div>
+                <h2>{nextGoal?.name ?? "Completa tu fondo de emergencia"}</h2>
+                <p>{profileSaved && nextGoalTarget > 0
+                  ? nextGoalGap > 0 ? `Te faltan ${formatCRC(nextGoalGap)} para alcanzar esta meta.` : "Esta meta ya está completa. Elige tu siguiente Norte."
+                  : "Guarda tus ingresos y gastos para recibir una recomendación basada en tu panorama."}</p>
+                <div className="goal-progress" aria-label={`${nextGoalProgress}% de avance`}><span style={{ width: `${nextGoalProgress}%` }} /></div>
+                <strong className="progress-caption">{nextGoalProgress}% completado</strong>
+                <div className="home-card-actions">
+                  <a className="solid-button" href={profileSaved ? "#mi-norte" : "#mi-panorama"}>{profileSaved ? "Continuar con esta meta" : "Construir mi Panorama"}<ArrowRight size={17} /></a>
+                  <a className="text-link" href="#mi-norte">Ver Mi Norte <ArrowRight size={15} /></a>
+                </div>
+              </div>
+              <div className="progress-ring home-progress-ring" role="img" aria-label={`${nextGoalProgress}% de la meta completado`} style={{ "--progress": `${nextGoalProgress * 3.6}deg` } as CSSProperties}>
+                <strong>{nextGoalProgress}%</strong><span>de la meta</span>
+              </div>
+            </article>
+
+            <article className="panel home-score-card">
+              <div className="score-ring" role="img" aria-label={`Norte Score ${profileSaved ? snapshot.norteScore : "sin calcular"} de 100`} style={{ "--score": `${snapshot.norteScore * 3.6}deg` } as CSSProperties}>
+                <strong>{profileSaved ? snapshot.norteScore : "--"}</strong><span>de 100</span>
+              </div>
+              <div className="score-summary">
+                <div className="home-card-kicker"><BarChart3 size={22} aria-hidden="true" /><strong>Norte Score</strong></div>
+                <span className="health-pill">{profileSaved ? snapshot.norteScore >= 70 ? "Buen avance" : "Hay oportunidades" : "Pendiente"}</span>
+                <p>{profileSaved ? "Tu puntuación resume flujo, deuda, respaldo y patrimonio." : "Completa tu Panorama para calcular tu punto de partida."}</p>
+                <div className="score-drivers">
+                  <span><small>Flujo mensual</small><strong>{formatCRC(snapshot.monthlySurplusCents - inputs.minimumPaymentCents)}</strong></span>
+                  <span><small>Deuda</small><strong>{snapshot.debtToIncomeBps / 100}%</strong></span>
+                  <span><small>Respaldo</small><strong>{snapshot.emergencyCoverageMonths} meses</strong></span>
+                </div>
+                <a className="text-link" href="#mi-panorama">Ver cómo se calcula <ArrowRight size={15} /></a>
+              </div>
+            </article>
+
+            <div className="home-metrics">
+              <HomeMetric icon={CircleDollarSign} tone="gold" label="Ingreso mensual" value={profileSaved ? formatCRC(snapshot.monthlyIncomeCents) : "--"} note="Ingresos guardados" />
+              <HomeMetric icon={PiggyBank} tone="green" label="Disponible este mes" value={profileSaved ? formatCRC(snapshot.monthlySurplusCents - inputs.minimumPaymentCents) : "--"} note="Después de cuotas" />
+              <HomeMetric icon={CreditCard} tone="gold" label="Deuda total" value={profileSaved ? formatCRC(snapshot.loanBalanceCents) : "--"} note="Saldo registrado" />
+              <HomeMetric icon={Home} tone="green" label="Patrimonio neto" value={profileSaved ? formatCRC(snapshot.netWorthCents) : "--"} note="Activos menos deudas" />
+            </div>
+
+            <article className="panel active-route-card">
+              <div className="home-card-kicker"><Route size={22} aria-hidden="true" /><strong>Tu ruta activa</strong><a href="#mis-rutas">Abrir Mis Rutas <ArrowRight size={14} /></a></div>
+              <h3>{activeRouteOverview?.name ?? "Elige un camino para avanzar"}</h3>
+              {activeRouteOverview ? <>
+                <div className="route-timeline" aria-label="Progreso estimado de la ruta"><span className="complete" /><span className="complete" /><span /><span /></div>
+                <div className="route-labels"><span>Hoy</span><span>Próximo pago</span><span>50% completado</span><span>Libre de deudas<br />{activeRouteOverview.results.optimized.debtFreeYear}</span></div>
+                <div className="route-overview-stats"><span><CircleDollarSign size={22} /> <strong>{formatCRC(activeRouteOverview.results.optimized.monthlyPaymentCents)}</strong><small>al mes</small></span><span><BarChart3 size={22} /><strong>{formatCRC(activeRouteOverview.results.interestSavedCents)}</strong><small>de intereses evitados</small></span></div>
+              </> : <div className="empty-home-card"><p>Calcula tus rutas para comparar tiempo, pago e intereses.</p><a className="solid-button" href="#mis-rutas">Calcular mis rutas</a></div>}
+            </article>
+
+            <article className="panel pending-decision-card">
+              <div className="home-card-kicker"><Sparkles size={22} aria-hidden="true" /><strong>Decisión pendiente</strong></div>
+              <div className="technical-mark" aria-hidden="true">{pendingSimulation?.simulationType === "car_purchase" ? <Car size={74} /> : <Compass size={74} />}</div>
+              <h3>{pendingSimulation ? simulationLabel(pendingSimulation.simulationType) : "Explora una decisión"}</h3>
+              <p>{pendingSimulation ? "Tu escenario guardado está listo para continuar." : "Compara una decisión antes de comprometer tu dinero."}</p>
+              <a className="solid-button" href="#decisiones">{pendingSimulation ? "Retomar simulación" : "Abrir Decision Lab"}<ArrowRight size={17} /></a>
+            </article>
+
+            <article className="panel recent-activity-card">
+              <div className="home-card-kicker"><BookOpen size={22} aria-hidden="true" /><strong>Actividad reciente</strong></div>
+              {recentActivity.length ? <ol>{recentActivity.map((item) => <li key={item.id}><span><item.icon size={17} aria-hidden="true" /></span><div><strong>{item.title}</strong><small>{formatRelativeDate(item.date)}</small></div></li>)}</ol> : <div className="empty-home-card"><p>Aún no hay actividad guardada.</p></div>}
+              <a className="text-link" href="#historial">Ver historial <ArrowRight size={15} /></a>
+            </article>
+          </section>
+
+          <section className="panel data-entry-panel executive-section" id="mi-panorama">
             <div className="section-heading">
               <div>
                 <p className="eyebrow">{profileSaved ? "Panorama guardado" : "Primer paso"}</p>
@@ -499,7 +584,7 @@ export function NorteApp({
             setFamily(data.family);
           }} />
           <BankingPanel onChange={refreshAppData} />
-          <section className="dashboard-grid" id="mi-panorama">
+          <section className="dashboard-grid">
             <article className="panel score-panel">
               <div className="score-ring" style={{ "--score": `${snapshot.norteScore * 3.6}deg` } as CSSProperties}>
                 <strong>{profileSaved ? snapshot.norteScore : "--"}</strong>
@@ -758,6 +843,49 @@ function Feature({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
       <span>{label}</span>
     </div>
   );
+}
+
+function HomeMetric({
+  icon: Icon,
+  tone,
+  label,
+  value,
+  note,
+}: {
+  icon: LucideIcon;
+  tone: "green" | "gold";
+  label: string;
+  value: string;
+  note: string;
+}) {
+  return (
+    <article className="panel home-metric-card">
+      <span className={`home-metric-icon ${tone}`}><Icon size={27} aria-hidden="true" /></span>
+      <div><span>{label}</span><strong>{value}</strong><small>{note}</small></div>
+    </article>
+  );
+}
+
+function simulationLabel(type: SavedSimulation["simulationType"]) {
+  return ({
+    home_purchase: "Comprar casa",
+    car_purchase: "Comprar carro",
+    refinance: "Refinanciar una deuda",
+    debt_consolidation: "Consolidar deuda",
+    invest_vs_debt: "Invertir o pagar deuda",
+    salary_change: "Evaluar un cambio salarial",
+    aguinaldo: "Distribuir el aguinaldo",
+    custom: "Revisar una decisión",
+  })[type];
+}
+
+function formatRelativeDate(value: string) {
+  const difference = Date.now() - Date.parse(value);
+  const days = Math.max(0, Math.floor(difference / 86_400_000));
+  if (days === 0) return "Hoy";
+  if (days === 1) return "Ayer";
+  if (days < 7) return `Hace ${days} días`;
+  return formatDisplayDate(value);
 }
 
 function Metric({

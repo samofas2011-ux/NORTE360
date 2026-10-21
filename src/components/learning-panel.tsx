@@ -8,7 +8,7 @@ export function LearningPanel(){
   async function refresh(){const data=await requestJson<{resources:Resource[];canManage:boolean}>("/api/resources");setResources(data.resources);setCanManage(data.canManage);}
   useEffect(()=>{void refresh().catch(error=>setMessage(error.message));},[]);
   async function act(action:()=>Promise<unknown>){setBusy(true);try{await action();await refresh();}catch(error){setMessage(String(error));}finally{setBusy(false);}}
-  return <section className="panel" id="recursos"><h3>Recursos y aprendizaje</h3><p role="status">{message}</p><div className="resource-grid">
+  return <section className="panel learning-panel" id="recursos"><h3>Recursos y aprendizaje</h3><p role="status">{message}</p><div className="resource-grid">
     {resources.map(resource=><article key={resource.id}><h4>{resource.title}</h4><p>{resource.category}{resource.published_at?"":" · Borrador"}</p>{resource.content?<details><summary>Leer</summary><p style={{whiteSpace:"pre-wrap"}}>{resource.content}</p></details>:null}
       {resource.url&&resource.url.startsWith("https://")?<a href={resource.url} target="_blank" rel="noopener noreferrer">Abrir recurso</a>:null}
       {resource.published_at?<label className="check-line"><input type="checkbox" disabled={busy} checked={Boolean(resource.completed_at)} onChange={event=>void act(()=>requestJson("/api/resources","POST",{id:resource.id,completed:event.target.checked}))}/>Completado</label>:null}

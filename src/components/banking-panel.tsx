@@ -16,7 +16,7 @@ export function BankingPanel({onChange}:{onChange:()=>Promise<void>}){
   async function refresh(){const [bank,transactions]=await Promise.all([requestJson<Banking>("/api/banking"),requestJson<Page>("/api/transactions")]);setData(bank);setPage(transactions);}
   useEffect(()=>{void refresh().catch(error=>setMessage(error.message));},[]);
   async function act(action:()=>Promise<unknown>){setBusy(true);try{await action();await refresh();await onChange();setMessage("Cambios guardados.");}catch(error){setMessage(error instanceof Error?error.message:"No se pudo guardar.");}finally{setBusy(false);}}
-  return <section className="panel" id="cuentas">
+  return <section className="panel record-panel banking-panel" id="cuentas">
     <h3>Cuentas y movimientos</h3><p role="status">{message}</p>
     <p>Ingresos registrados este mes: {formatCRC(Number(data.totals.income))} · Gastos registrados: {formatCRC(Number(data.totals.expense))}</p>
     <ul className="saved-records">{data.accounts.map(item=><li key={item.id}><span>{item.name}: {formatCRC(Number(item.balance_cents))}</span><div>

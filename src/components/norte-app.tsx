@@ -600,6 +600,7 @@ export function NorteApp({
           </section>
 
           <section className="app-module" data-module="mi-panorama" hidden={activeModule !== "mi-panorama"}>
+          <ModuleHero eyebrow="Tu punto de partida" title="Mi Panorama" copy="Ordena tus números, entiende tu posición y construye una base clara para decidir." icon={Gauge} />
           <section className="panel data-entry-panel executive-section" id="mi-panorama">
             <div className="section-heading">
               <div>
@@ -665,10 +666,12 @@ export function NorteApp({
           </section>
 
           <section className="app-module" data-module="mi-norte" hidden={activeModule !== "mi-norte"}>
+          <ModuleHero eyebrow="Objetivos con dirección" title="Mi Norte" copy="Convierte lo que quieres lograr en metas concretas, medibles y compartidas." icon={Target} />
           <GoalPlanner householdId={family.householdId} onChange={refreshAppData} />
           </section>
 
           <section className="app-module" data-module="mis-rutas" hidden={activeModule !== "mis-rutas"}>
+          <ModuleHero eyebrow="Caminos para avanzar" title="Mis Rutas" copy="Compara estrategias y elige la que mejor se adapta a tu vida." icon={Route} />
           <section className="panel route-section" id="mis-rutas">
             <div className="section-heading">
               <div>
@@ -679,15 +682,17 @@ export function NorteApp({
             </div>
             <div className="route-card-grid">
               {routeCards.map((card) => (
-                <button onClick={() => setSelectedRoute(card.scenarioType)} className={selectedRoute === card.scenarioType ? "route-choice active" : "route-choice"} key={card.title}>
+                <button aria-pressed={selectedRoute === card.scenarioType} type="button" onClick={() => setSelectedRoute(card.scenarioType)} className={selectedRoute === card.scenarioType ? "route-choice active" : "route-choice"} key={card.title}>
                   <card.icon size={24} />
                   <strong>{card.title}</strong>
                   <span>{card.copy}</span>
                 </button>
               ))}
             </div>
-            <button className="solid-button" disabled={actionState === "loading"} onClick={() => void perform(generateRoutes)}>Calcular y guardar rutas</button>
-            {savedFastScenario ? <p>Guardada {formatDisplayDate(savedFastScenario.updatedAt)}</p> : <p>Calcula las rutas para ver los resultados guardados.</p>}
+            <div className="route-command-bar">
+              <div><strong>{routeCards.find((card) => card.scenarioType === selectedRoute)?.title}</strong>{savedFastScenario ? <span>Guardada {formatDisplayDate(savedFastScenario.updatedAt)}</span> : <span>Vista previa basada en tu Panorama</span>}</div>
+              <button className="solid-button" disabled={actionState === "loading"} onClick={() => void perform(generateRoutes)}>Calcular y guardar rutas</button>
+            </div>
             <div className="route-result">
               <div>
                 <p className="eyebrow">{savedFastScenario?.name ?? "Vista previa de deuda"}</p>
@@ -712,6 +717,7 @@ export function NorteApp({
           </section>
 
           <section className="app-module" data-module="decisiones" hidden={activeModule !== "decisiones"}>
+          <ModuleHero eyebrow="Decide con perspectiva" title="Decision Lab" copy="Prueba escenarios antes de comprometer tu dinero y guarda los que quieras comparar." icon={Compass} />
           <section className="two-column" id="decisiones">
             <article className="panel simulator">
               <div className="section-heading">
@@ -764,6 +770,7 @@ export function NorteApp({
           </section>
 
           <section className="app-module" data-module="norte360-advisor" hidden={activeModule !== "norte360-advisor"}>
+          <ModuleHero eyebrow="Orientación para avanzar" title="Norte360 Advisor" copy="Recibe una lectura clara de tu panorama y próximos pasos basados en tus cifras." icon={Bot} />
           <section className="two-column single-module-column" id="norte360-advisor">
             <article className="panel advisor">
               <p className="eyebrow">Norte360 Advisor</p>
@@ -786,6 +793,7 @@ export function NorteApp({
           </section>
 
           <section className="app-module" data-module="mi-familia" hidden={activeModule !== "mi-familia"}>
+          <ModuleHero eyebrow="Un Norte compartido" title="Mi Familia" copy="Coordina metas, permisos y decisiones del hogar desde un mismo lugar." icon={Users} />
           <section className="two-column single-module-column">
             <article className="panel family" id="mi-familia">
               <p className="eyebrow">Mi Familia</p>
@@ -820,10 +828,12 @@ export function NorteApp({
           </section>
 
           <section className="app-module" data-module="recursos" hidden={activeModule !== "recursos"}>
+          <ModuleHero eyebrow="Aprender para decidir" title="Recursos" copy="Fortalece tu criterio financiero con contenido útil para cada etapa de tu camino." icon={BookOpen} />
           <LearningPanel />
           </section>
 
           <section className="app-module" data-module="notificaciones" hidden={activeModule !== "notificaciones"}>
+          <ModuleHero eyebrow="Lo que requiere tu atención" title="Notificaciones" copy="Revisa novedades y cambios recientes de tu panorama." icon={Bell} compact />
           <section className="panel" id="notificaciones">
             <h3>Notificaciones</h3>
             <button onClick={() => void perform(markAllNotificationsRead)}>Marcar todas como leidas</button>
@@ -831,9 +841,11 @@ export function NorteApp({
           </section>
           </section>
           <section className="app-module" data-module="historial" hidden={activeModule !== "historial"}>
+          <ModuleHero eyebrow="Tu actividad" title="Historial" copy="Consulta las decisiones, rutas y simulaciones que has guardado." icon={BookOpen} compact />
           <HistoryPanel onChange={refreshAppData} />
           </section>
           <section className="app-module" data-module="configuracion" hidden={activeModule !== "configuracion"}>
+          <ModuleHero eyebrow="Seguridad y datos" title="Mi cuenta" copy="Administra tu acceso, verificación y exportación de información." icon={ShieldCheck} compact />
           <AccountSettings />
           </section>
           <section className="roadmap" id="roadmap" hidden>
@@ -914,6 +926,33 @@ function Feature({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
       <Icon size={28} />
       <span>{label}</span>
     </div>
+  );
+}
+
+function ModuleHero({
+  eyebrow,
+  title,
+  copy,
+  icon: Icon,
+  compact = false,
+}: {
+  eyebrow: string;
+  title: string;
+  copy: string;
+  icon: LucideIcon;
+  compact?: boolean;
+}) {
+  return (
+    <header className={`module-hero${compact ? " compact" : ""}`}>
+      <div>
+        <p className="eyebrow">{eyebrow}</p>
+        <h1>{title}</h1>
+        <p>{copy}</p>
+      </div>
+      <div className="module-hero-art" aria-hidden="true">
+        <span><Icon size={44} /></span>
+      </div>
+    </header>
   );
 }
 

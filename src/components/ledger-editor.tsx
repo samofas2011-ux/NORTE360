@@ -25,7 +25,7 @@ export function LedgerEditor({ items, onChange }: { items: LedgerItem[]; onChang
     } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo guardar."); }
     finally { setBusy(false); }
   }
-  return <section className="panel" id="activos-deudas">
+  return <section className="panel record-panel ledger-panel" id="activos-deudas">
     <h3>Activos y deudas</h3>
     <ul className="saved-records">{items.map(item => <li key={item.id}>
       <div><strong>{item.name}</strong><p>{labels[item.category]}: {formatCRC(item.amountCents)}{item.kind === "liabilities" ? ` · ${item.annualInterestBps / 100}% · ${formatCRC(item.minimumPaymentCents)}/mes` : ""}</p></div>

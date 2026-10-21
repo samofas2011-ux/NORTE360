@@ -11,6 +11,11 @@ export function DecisionLab({ simulations, onChange }: { simulations: SavedSimul
   const [results, setResults] = useState<DecisionResults>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  function chooseType(nextType: DecisionType) {
+    setType(nextType);
+    setValues({});
+    setResults([]);
+  }
   async function save() {
     setBusy(true);
     try {
@@ -24,10 +29,14 @@ export function DecisionLab({ simulations, onChange }: { simulations: SavedSimul
     } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo guardar."); }
     finally { setBusy(false); }
   }
-  return <section className="panel">
-    <h3>Mas decisiones</h3>
-    <label>Decision<select value={type} onChange={event => { setType(event.target.value as DecisionType); setValues({}); setResults([]); }}>{Object.entries(decisionTypes).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}</select></label>
+  return <section className="panel decision-lab-panel">
+    <p className="eyebrow">Más simuladores</p>
+    <h3>Elige una decisión para comparar</h3>
+    <div className="decision-type-strip" aria-label="Tipo de simulación">
+      {Object.entries(decisionTypes).map(([key, value], index) => <button aria-pressed={type === key} className={type === key ? "active" : ""} key={key} onClick={() => chooseType(key as DecisionType)} type="button"><span>{index + 1}</span>{value.label}</button>)}
+    </div>
     <form onSubmit={event => { event.preventDefault(); void save(); }}>
+      <h4>{decisionTypes[type].label}</h4>
       <div className="form-grid">{decisionTypes[type].fields.map(([key,label]) => {
         const factor = key.endsWith("Cents") || key.endsWith("Bps") ? 100 : 1;
         return <label key={key}>{label}<input type="number" min={key === "termMonths" ? 1 : 0} step={factor === 100 ? "0.01" : "1"} required value={(values[key] ?? 0) / factor} onChange={event => setValues(current => ({ ...current, [key]: Math.round(Number(event.target.value) * factor) }))} /></label>;

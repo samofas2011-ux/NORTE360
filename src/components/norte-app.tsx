@@ -55,6 +55,7 @@ import type {
   RouteScenario,
   SavedSimulation,
 } from "@/lib/product-db";
+import { resolveAppModule, type AppModuleId } from "@/lib/module-navigation";
 
 const baseInputs: FinancialInputs = {
   monthlyIncomeCents: 180000000,
@@ -69,15 +70,15 @@ const baseInputs: FinancialInputs = {
   targetDownPaymentBps: 2000,
 };
 
-const navItems = [
-  { label: "Inicio", icon: Home },
-  { label: "Mi Panorama", icon: Gauge },
-  { label: "Mi Norte", icon: Target },
-  { label: "Mis Rutas", icon: Route },
+const navItems: Array<{ label: string; icon: LucideIcon; href: AppModuleId }> = [
+  { label: "Inicio", icon: Home, href: "inicio" },
+  { label: "Mi Panorama", icon: Gauge, href: "mi-panorama" },
+  { label: "Mi Norte", icon: Target, href: "mi-norte" },
+  { label: "Mis Rutas", icon: Route, href: "mis-rutas" },
   { label: "Decision Lab", icon: Compass, href: "decisiones" },
   { label: "Advisor", icon: Bot, href: "norte360-advisor" },
-  { label: "Mi Familia", icon: Users },
-  { label: "Recursos", icon: BookOpen },
+  { label: "Mi Familia", icon: Users, href: "mi-familia" },
+  { label: "Recursos", icon: BookOpen, href: "recursos" },
 ];
 
 const routeCards: Array<{
@@ -166,6 +167,7 @@ export function NorteApp({
   const [actionMessage, setActionMessage] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveMessage, setSaveMessage] = useState("");
+  const [activeModule, setActiveModule] = useState<AppModuleId>("inicio");
   const snapshot = useMemo(() => buildFinancialSnapshot(inputs), [inputs]);
   const scenario = useMemo(() => getRouteComparison(inputs), [inputs]);
   const savedFastScenario = routeScenarios.find((item) => item.scenarioType === selectedRoute);
@@ -193,6 +195,51 @@ export function NorteApp({
     ...simulations.map((item) => ({ id: `simulation-${item.id}`, title: `Simulaste ${simulationLabel(item.simulationType)}`, date: item.createdAt, icon: Compass })),
     ...goals.map((item) => ({ id: `goal-${item.id}`, title: `Actualizaste ${item.name}`, date: item.updatedAt, icon: Target })),
   ].sort((a, b) => Date.parse(b.date) - Date.parse(a.date)).slice(0, 3);
+
+  useEffect(() => {
+    function syncModuleFromLocation(focus: boolean) {
+      const requested = resolveAppModule(window.location.hash);
+      if (window.location.hash !== `#${requested}`) {
+        window.history.replaceState(null, "", `#${requested}`);
+      }
+      presentModule(requested, focus);
+    }
+
+    const restoreModule = () => syncModuleFromLocation(true);
+    syncModuleFromLocation(false);
+    window.addEventListener("hashchange", restoreModule);
+    window.addEventListener("popstate", restoreModule);
+    return () => {
+      window.removeEventListener("hashchange", restoreModule);
+      window.removeEventListener("popstate", restoreModule);
+    };
+  }, []);
+
+  function navigateTo(module: AppModuleId) {
+    if (activeModule !== module || window.location.hash !== `#${module}`) {
+      window.history.pushState(null, "", `#${module}`);
+    }
+    presentModule(module, true);
+  }
+
+  function presentModule(module: AppModuleId, focus: boolean) {
+    setActiveModule(module);
+    if (!focus) return;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" });
+    window.requestAnimationFrame(() => {
+      const heading = document.querySelector<HTMLElement>(`[data-module="${module}"] h1, [data-module="${module}"] h2, [data-module="${module}"] h3`);
+      heading?.setAttribute("tabindex", "-1");
+      heading?.focus({ preventScroll: true });
+      document.querySelector<HTMLElement>(`.app-nav a[href="#${module}"]`)?.scrollIntoView({ block: "nearest", inline: "center", behavior: reducedMotion ? "auto" : "smooth" });
+    });
+  }
+
+  function followModuleLink(event: React.MouseEvent<HTMLAnchorElement>, module: AppModuleId) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    navigateTo(module);
+  }
 
   async function perform(action: () => Promise<void>) {
     try { await action(); } catch (error) {
@@ -449,25 +496,27 @@ export function NorteApp({
     <main>
       <section className="app-shell" id="app">
         <header className="app-topbar">
-          <a className="side-brand" href="#inicio" aria-label="Norte360 Inicio">
+          <a className="side-brand" href="#inicio" aria-label="Norte360 Inicio" onClick={(event) => followModuleLink(event, "inicio")}>
             <Mountain size={26} />
             <strong>Norte360</strong>
           </a>
           <nav className="app-nav" aria-label="Navegacion principal">
-            {navItems.map((item, index) => (
-              <a aria-current={index === 0 ? "page" : undefined} className={index === 0 ? "active" : ""} href={`#${item.href ?? slug(item.label)}`} key={item.label}>
+            {navItems.map((item) => (
+              <a aria-current={activeModule === item.href ? "page" : undefined} className={activeModule === item.href ? "active" : ""} href={`#${item.href}`} key={item.label} onClick={(event) => followModuleLink(event, item.href)}>
                 {item.label}
               </a>
             ))}
           </nav>
           <div className="app-account">
-            <a className="notification-link" href="#notificaciones" title="Notificaciones"><Bell size={18} /><span>{unreadNotifications}</span></a>
-            <a className="account-link" href="#configuracion"><span className="avatar">{userInitial}</span><span>{userName}</span></a>
+            <a aria-current={activeModule === "notificaciones" ? "page" : undefined} className="notification-link" href="#notificaciones" title="Notificaciones" onClick={(event) => followModuleLink(event, "notificaciones")}><Bell size={18} /><span>{unreadNotifications}</span></a>
+            <a aria-current={activeModule === "configuracion" ? "page" : undefined} className="account-link" href="#configuracion" onClick={(event) => followModuleLink(event, "configuracion")}><span className="avatar">{userInitial}</span><span>{userName}</span></a>
             <button onClick={() => void perform(logout)} type="button">Salir</button>
           </div>
         </header>
 
-        <section className="workspace">
+        <section className="workspace" id="module-content">
+          {actionMessage ? <p role="status" className={`status-pill module-status ${actionState}`}>{actionMessage}</p> : null}
+          <section className="app-module" data-module="inicio" hidden={activeModule !== "inicio"}>
           <header className="workspace-header executive-hero" id="inicio">
             <div>
               <p className="home-date">{greetingDate}</p>
@@ -491,8 +540,8 @@ export function NorteApp({
                 <div className="goal-progress" aria-label={`${nextGoalProgress}% de avance`}><span style={{ width: `${nextGoalProgress}%` }} /></div>
                 <strong className="progress-caption">{nextGoalProgress}% completado</strong>
                 <div className="home-card-actions">
-                  <a className="solid-button" href={profileSaved ? "#mi-norte" : "#mi-panorama"}>{profileSaved ? "Continuar con esta meta" : "Construir mi Panorama"}<ArrowRight size={17} /></a>
-                  <a className="text-link" href="#mi-norte">Ver Mi Norte <ArrowRight size={15} /></a>
+                  <a className="solid-button" href={profileSaved ? "#mi-norte" : "#mi-panorama"} onClick={(event) => followModuleLink(event, profileSaved ? "mi-norte" : "mi-panorama")}>{profileSaved ? "Continuar con esta meta" : "Construir mi Panorama"}<ArrowRight size={17} /></a>
+                  <a className="text-link" href="#mi-norte" onClick={(event) => followModuleLink(event, "mi-norte")}>Ver Mi Norte <ArrowRight size={15} /></a>
                 </div>
               </div>
               <div className="progress-ring home-progress-ring" role="img" aria-label={`${nextGoalProgress}% de la meta completado`} style={{ "--progress": `${nextGoalProgress * 3.6}deg` } as CSSProperties}>
@@ -513,7 +562,7 @@ export function NorteApp({
                   <span><small>Deuda</small><strong>{snapshot.debtToIncomeBps / 100}%</strong></span>
                   <span><small>Respaldo</small><strong>{snapshot.emergencyCoverageMonths} meses</strong></span>
                 </div>
-                <a className="text-link" href="#mi-panorama">Ver cómo se calcula <ArrowRight size={15} /></a>
+                <a className="text-link" href="#mi-panorama" onClick={(event) => followModuleLink(event, "mi-panorama")}>Ver cómo se calcula <ArrowRight size={15} /></a>
               </div>
             </article>
 
@@ -525,13 +574,13 @@ export function NorteApp({
             </div>
 
             <article className="panel active-route-card">
-              <div className="home-card-kicker"><Route size={22} aria-hidden="true" /><strong>Tu ruta activa</strong><a href="#mis-rutas">Abrir Mis Rutas <ArrowRight size={14} /></a></div>
+              <div className="home-card-kicker"><Route size={22} aria-hidden="true" /><strong>Tu ruta activa</strong><a href="#mis-rutas" onClick={(event) => followModuleLink(event, "mis-rutas")}>Abrir Mis Rutas <ArrowRight size={14} /></a></div>
               <h3>{activeRouteOverview?.name ?? "Elige un camino para avanzar"}</h3>
               {activeRouteOverview ? <>
                 <div className="route-timeline" aria-label="Progreso estimado de la ruta"><span className="complete" /><span className="complete" /><span /><span /></div>
                 <div className="route-labels"><span>Hoy</span><span>Próximo pago</span><span>50% completado</span><span>Libre de deudas<br />{activeRouteOverview.results.optimized.debtFreeYear}</span></div>
                 <div className="route-overview-stats"><span><CircleDollarSign size={22} /> <strong>{formatCRC(activeRouteOverview.results.optimized.monthlyPaymentCents)}</strong><small>al mes</small></span><span><BarChart3 size={22} /><strong>{formatCRC(activeRouteOverview.results.interestSavedCents)}</strong><small>de intereses evitados</small></span></div>
-              </> : <div className="empty-home-card"><p>Calcula tus rutas para comparar tiempo, pago e intereses.</p><a className="solid-button" href="#mis-rutas">Calcular mis rutas</a></div>}
+              </> : <div className="empty-home-card"><p>Calcula tus rutas para comparar tiempo, pago e intereses.</p><a className="solid-button" href="#mis-rutas" onClick={(event) => followModuleLink(event, "mis-rutas")}>Calcular mis rutas</a></div>}
             </article>
 
             <article className="panel pending-decision-card">
@@ -539,16 +588,18 @@ export function NorteApp({
               <div className="technical-mark" aria-hidden="true">{pendingSimulation?.simulationType === "car_purchase" ? <Car size={74} /> : <Compass size={74} />}</div>
               <h3>{pendingSimulation ? simulationLabel(pendingSimulation.simulationType) : "Explora una decisión"}</h3>
               <p>{pendingSimulation ? "Tu escenario guardado está listo para continuar." : "Compara una decisión antes de comprometer tu dinero."}</p>
-              <a className="solid-button" href="#decisiones">{pendingSimulation ? "Retomar simulación" : "Abrir Decision Lab"}<ArrowRight size={17} /></a>
+              <a className="solid-button" href="#decisiones" onClick={(event) => followModuleLink(event, "decisiones")}>{pendingSimulation ? "Retomar simulación" : "Abrir Decision Lab"}<ArrowRight size={17} /></a>
             </article>
 
             <article className="panel recent-activity-card">
               <div className="home-card-kicker"><BookOpen size={22} aria-hidden="true" /><strong>Actividad reciente</strong></div>
               {recentActivity.length ? <ol>{recentActivity.map((item) => <li key={item.id}><span><item.icon size={17} aria-hidden="true" /></span><div><strong>{item.title}</strong><small>{formatRelativeDate(item.date)}</small></div></li>)}</ol> : <div className="empty-home-card"><p>Aún no hay actividad guardada.</p></div>}
-              <a className="text-link" href="#historial">Ver historial <ArrowRight size={15} /></a>
+              <a className="text-link" href="#historial" onClick={(event) => followModuleLink(event, "historial")}>Ver historial <ArrowRight size={15} /></a>
             </article>
           </section>
+          </section>
 
+          <section className="app-module" data-module="mi-panorama" hidden={activeModule !== "mi-panorama"}>
           <section className="panel data-entry-panel executive-section" id="mi-panorama">
             <div className="section-heading">
               <div>
@@ -574,7 +625,6 @@ export function NorteApp({
             </div>
           </section>
 
-          {actionMessage ? <p role="status" className={`status-pill ${actionState}`}>{actionMessage}</p> : null}
           <LedgerEditor items={ledger} onChange={async () => {
             const response = await requestResponse("/api/app-data");
             if (!response.ok) throw new Error("No se pudo actualizar el Panorama.");
@@ -596,7 +646,7 @@ export function NorteApp({
                 <p>
                   Cobertura de emergencia: {snapshot.emergencyCoverageMonths} meses. Cuotas de deuda: {snapshot.debtToIncomeBps / 100}% de tus ingresos.
                 </p>
-                <a className="text-link" href="#mis-rutas">
+                <a className="text-link" href="#mis-rutas" onClick={(event) => followModuleLink(event, "mis-rutas")}>
                   Ver detalles <ArrowRight size={15} />
                 </a>
               </div>
@@ -612,9 +662,13 @@ export function NorteApp({
             <Metric title="Disponible despues de cuotas" value={formatCRC(snapshot.monthlySurplusCents - inputs.minimumPaymentCents)} trend="" />
             <Metric title="Patrimonio neto" value={formatCRC(snapshot.netWorthCents)} trend="" />
           </section>
+          </section>
 
+          <section className="app-module" data-module="mi-norte" hidden={activeModule !== "mi-norte"}>
           <GoalPlanner householdId={family.householdId} onChange={refreshAppData} />
+          </section>
 
+          <section className="app-module" data-module="mis-rutas" hidden={activeModule !== "mis-rutas"}>
           <section className="panel route-section" id="mis-rutas">
             <div className="section-heading">
               <div>
@@ -655,7 +709,9 @@ export function NorteApp({
               </div>
             </div>
           </section>
+          </section>
 
+          <section className="app-module" data-module="decisiones" hidden={activeModule !== "decisiones"}>
           <section className="two-column" id="decisiones">
             <article className="panel simulator">
               <div className="section-heading">
@@ -705,7 +761,10 @@ export function NorteApp({
           </section>
 
           <DecisionLab simulations={simulations} onChange={refreshAppData} />
-          <section className="two-column" id="norte360-advisor">
+          </section>
+
+          <section className="app-module" data-module="norte360-advisor" hidden={activeModule !== "norte360-advisor"}>
+          <section className="two-column single-module-column" id="norte360-advisor">
             <article className="panel advisor">
               <p className="eyebrow">Norte360 Advisor</p>
               <h3>Analisis de tu Panorama</h3>
@@ -723,7 +782,11 @@ export function NorteApp({
                 setAdvisorMessages([]);
               })}><Trash2 size={16} /></button> : null}
             </article>
+          </section>
+          </section>
 
+          <section className="app-module" data-module="mi-familia" hidden={activeModule !== "mi-familia"}>
+          <section className="two-column single-module-column">
             <article className="panel family" id="mi-familia">
               <p className="eyebrow">Mi Familia</p>
               <h3>Un mismo Norte, mas posibilidades.</h3>
@@ -754,16 +817,25 @@ export function NorteApp({
               {invitations.map(invitation => <div key={invitation.id}><p>Invitacion: {invitation.name}. Al aceptar compartes tus totales financieros con este hogar.</p><button onClick={() => void perform(() => familyAction({ operation: "accept", id: invitation.id }))}>Aceptar</button><button onClick={() => void perform(() => familyAction({ operation: "remove", id: invitation.id }))}>Rechazar</button></div>)}
             </article>
           </section>
+          </section>
 
+          <section className="app-module" data-module="recursos" hidden={activeModule !== "recursos"}>
           <LearningPanel />
+          </section>
 
+          <section className="app-module" data-module="notificaciones" hidden={activeModule !== "notificaciones"}>
           <section className="panel" id="notificaciones">
             <h3>Notificaciones</h3>
             <button onClick={() => void perform(markAllNotificationsRead)}>Marcar todas como leidas</button>
             <ul className="saved-records">{notifications.map(item => <li key={item.id}><div><strong>{item.title}{item.readAt ? "" : " (Nueva)"}</strong><p>{item.body}</p></div><button title="Eliminar notificacion" onClick={() => void perform(() => removeRecord("notifications", item.id))}><Trash2 size={16} /></button></li>)}</ul>
           </section>
+          </section>
+          <section className="app-module" data-module="historial" hidden={activeModule !== "historial"}>
           <HistoryPanel onChange={refreshAppData} />
+          </section>
+          <section className="app-module" data-module="configuracion" hidden={activeModule !== "configuracion"}>
           <AccountSettings />
+          </section>
           <section className="roadmap" id="roadmap" hidden>
             <p className="eyebrow">Roadmap de producto</p>
             <h2>Una ruta de construccion por fases</h2>
@@ -906,13 +978,4 @@ function Metric({
       <small className={tone === "warn" ? "warn" : ""}>{trend}</small>
     </article>
   );
-}
-
-function slug(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
 }

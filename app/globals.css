@@ -1497,6 +1497,14 @@ label span {
   text-transform: capitalize;
 }
 
+.app-module[hidden] { display: none !important; }
+.app-module { min-height: calc(100vh - 108px); }
+.app-module > :first-child { margin-top: 0; }
+.single-module-column { grid-template-columns: minmax(0, 1fr); }
+.single-module-column > .panel { min-height: min(720px, calc(100vh - 150px)); }
+.module-status { position: relative; z-index: 2; margin: 0 0 14px; }
+.app-account a[aria-current="page"] { box-shadow: 0 0 0 2px rgba(14, 98, 69, .18); }
+
 .home-overview {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));

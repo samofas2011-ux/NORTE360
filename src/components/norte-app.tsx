@@ -56,6 +56,7 @@ import type {
   SavedSimulation,
 } from "@/lib/product-db";
 import { resolveAppModule, type AppModuleId } from "@/lib/module-navigation";
+import type { DecisionType } from "@/lib/decision-engine";
 
 const baseInputs: FinancialInputs = {
   monthlyIncomeCents: 180000000,
@@ -102,6 +103,16 @@ const goalTiles: Array<{ label: string; icon: LucideIcon; goalType: GoalType }> 
   { label: "Retiro", icon: Landmark, goalType: "retirement" },
   { label: "Construir patrimonio", icon: LineChart, goalType: "build_wealth" },
   { label: "Personalizado", icon: Plus, goalType: "custom" },
+];
+
+type LabType = "home_purchase" | DecisionType;
+const labOptions: Array<{ type: LabType; label: string; icon: LucideIcon }> = [
+  { type: "home_purchase", label: "Comprar casa", icon: Home },
+  { type: "car_purchase", label: "Comprar carro", icon: Car },
+  { type: "debt_consolidation", label: "Consolidar deuda", icon: CreditCard },
+  { type: "invest_vs_debt", label: "Invertir vs. deuda", icon: BarChart3 },
+  { type: "salary_change", label: "Cambio salarial", icon: Landmark },
+  { type: "aguinaldo", label: "Distribuir aguinaldo", icon: Sparkles },
 ];
 
 type NorteAppProps = {
@@ -168,6 +179,7 @@ export function NorteApp({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveMessage, setSaveMessage] = useState("");
   const [activeModule, setActiveModule] = useState<AppModuleId>("inicio");
+  const [labType, setLabType] = useState<LabType>("home_purchase");
   const snapshot = useMemo(() => buildFinancialSnapshot(inputs), [inputs]);
   const scenario = useMemo(() => getRouteComparison(inputs), [inputs]);
   const savedFastScenario = routeScenarios.find((item) => item.scenarioType === selectedRoute);
@@ -718,6 +730,10 @@ export function NorteApp({
 
           <section className="app-module" data-module="decisiones" hidden={activeModule !== "decisiones"}>
           <ModuleHero eyebrow="Decide con perspectiva" title="Decision Lab" copy="Prueba escenarios antes de comprometer tu dinero y guarda los que quieras comparar." icon={Compass} />
+          <nav className="lab-submenu" aria-label="Simuladores de Decision Lab">
+            {labOptions.map((option) => <button aria-pressed={labType === option.type} className={labType === option.type ? "active" : ""} key={option.type} onClick={() => setLabType(option.type)} type="button"><option.icon size={26} aria-hidden="true" /><span>{option.label}</span></button>)}
+          </nav>
+          {labType === "home_purchase" ? <>
           <section className="two-column" id="decisiones">
             <article className="panel simulator">
               <div className="section-heading">
@@ -765,8 +781,7 @@ export function NorteApp({
               </div>
             </article>
           </section>
-
-          <DecisionLab simulations={simulations} onChange={refreshAppData} />
+          </> : <DecisionLab simulations={simulations} onChange={refreshAppData} type={labType} onTypeChange={setLabType} />}
           </section>
 
           <section className="app-module" data-module="norte360-advisor" hidden={activeModule !== "norte360-advisor"}>

@@ -1910,18 +1910,24 @@ meter { accent-color: #0e6245; }
 .route-stats { border-color: #dbe4de; background: #f8faf7; }
 
 .app-module[data-module="decisiones"] > .two-column { grid-template-columns: minmax(0, 1.35fr) minmax(310px, .65fr); }
+.lab-submenu { position: relative; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin: 0 0 14px; }
+.lab-submenu::before { position: absolute; z-index: 0; top: 50%; right: 4%; left: 4%; height: 2px; background: #bfd1c7; content: ""; }
+.lab-submenu button { position: relative; z-index: 1; display: grid; min-height: 108px; place-items: center; gap: 8px; border: 1px solid #d9e1dc; border-radius: 12px; padding: 14px 10px; background: rgba(255,255,255,.96); color: #153e30; cursor: pointer; font-family: Georgia, "Times New Roman", serif; font-size: .96rem; font-weight: 650; }
+.lab-submenu button svg { color: #0e6245; }
+.lab-submenu button.active { border-color: #0e6245; background: linear-gradient(145deg, #0e6245, #154e3b); color: white; box-shadow: 0 14px 30px rgba(14,98,69,.2); }
+.lab-submenu button.active svg { color: #f3dfae; }
 .simulator,
 .results-card,
 .decision-lab-panel { padding: 30px; }
 .results-card { background: linear-gradient(145deg, #fff 45%, #edf6f1); }
 .results-card > h3 { font-size: clamp(2rem, 3.4vw, 3.4rem) !important; }
-.decision-lab-panel > dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.decision-type-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 20px 0; }
-.decision-type-strip button { display: flex; min-height: 72px; align-items: center; gap: 9px; border: 1px solid #dbe4de; border-radius: 10px; padding: 10px; background: #fff; color: #344a42; cursor: pointer; font-size: .78rem; font-weight: 800; text-align: left; }
-.decision-type-strip button > span { display: grid; flex: 0 0 28px; width: 28px; height: 28px; place-items: center; border-radius: 50%; background: #edf3ef; color: #0e6245; }
-.decision-type-strip button.active { border-color: #0e6245; background: #eaf5ee; color: #153e30; box-shadow: inset 0 0 0 1px #0e6245; }
-.decision-type-strip button.active > span { background: #0e6245; color: white; }
-.decision-lab-panel > dl > div { border: 1px solid #dbe4de; border-radius: 10px; padding: 16px; background: #f3f8f5; }
+.decision-workbench { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); gap: 14px; margin-top: 20px; }
+.decision-workbench > form { margin: 0 !important; }
+.decision-result-panel { border: 1px solid #dbe4de; border-radius: 12px; padding: 24px; background: linear-gradient(145deg, #f5faf7, #eaf4ee); }
+.decision-result-panel h4 { margin: 0 0 18px; color: #153e30; font-family: Georgia, "Times New Roman", serif; font-size: 1.35rem; }
+.decision-result-panel dl { display: grid; gap: 10px; margin: 0; }
+.decision-result-panel dl > div { border: 1px solid #dbe4de; border-radius: 10px; padding: 16px; background: rgba(255,255,255,.84); }
+.saved-scenarios-title { margin: 26px 0 8px; color: #153e30; font-family: Georgia, "Times New Roman", serif; font-size: 1.25rem; }
 .decision-lab-panel dt { color: #617069; font-size: .75rem; font-weight: 800; }
 .decision-lab-panel dd { margin: 6px 0 0; color: #153e30; font-family: Georgia, "Times New Roman", serif; font-size: 1.25rem; font-weight: 700; }
 
@@ -1946,7 +1952,8 @@ meter { accent-color: #0e6245; }
   .learning-panel .resource-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .record-panel .saved-records { grid-template-columns: 1fr; }
   .app-module[data-module="decisiones"] > .two-column { grid-template-columns: 1fr; }
-  .decision-type-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lab-submenu { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .decision-workbench { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 700px) {
@@ -1957,9 +1964,8 @@ meter { accent-color: #0e6245; }
   .goal-planner-panel .saved-records,
   .learning-panel .resource-grid,
   .family-row,
-  .decision-lab-panel > dl { grid-template-columns: 1fr; }
-  .decision-type-strip { display: flex; overflow-x: auto; padding-bottom: 6px; }
-  .decision-type-strip button { flex: 0 0 180px; }
+  .lab-submenu { display: flex; overflow-x: auto; padding-bottom: 8px; }
+  .lab-submenu button { flex: 0 0 155px; min-height: 96px; }
   .record-panel,
   .goal-planner-panel,
   .route-section,

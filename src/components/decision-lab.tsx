@@ -1,21 +1,19 @@
 "use client";
 import { requestResponse } from "@/lib/client-api";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { decisionTypes, type DecisionType, type DecisionResults } from "@/lib/decision-engine";
 import { formatCRC } from "@/lib/financial-engine";
 import type { SavedSimulation } from "@/lib/product-db";
-export function DecisionLab({ simulations, onChange }: { simulations: SavedSimulation[]; onChange: () => Promise<void> }) {
-  const [type, setType] = useState<DecisionType>("car_purchase");
+export function DecisionLab({ simulations, onChange, type, onTypeChange }: { simulations: SavedSimulation[]; onChange: () => Promise<void>; type: DecisionType; onTypeChange: (type: DecisionType) => void }) {
   const [values, setValues] = useState<Record<string, number>>({});
   const [results, setResults] = useState<DecisionResults>([]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  function chooseType(nextType: DecisionType) {
-    setType(nextType);
+  useEffect(() => {
     setValues({});
     setResults([]);
-  }
+  }, [type]);
   async function save() {
     setBusy(true);
     try {
@@ -30,11 +28,9 @@ export function DecisionLab({ simulations, onChange }: { simulations: SavedSimul
     finally { setBusy(false); }
   }
   return <section className="panel decision-lab-panel">
-    <p className="eyebrow">Más simuladores</p>
-    <h3>Elige una decisión para comparar</h3>
-    <div className="decision-type-strip" aria-label="Tipo de simulación">
-      {Object.entries(decisionTypes).map(([key, value], index) => <button aria-pressed={type === key} className={type === key ? "active" : ""} key={key} onClick={() => chooseType(key as DecisionType)} type="button"><span>{index + 1}</span>{value.label}</button>)}
-    </div>
+    <p className="eyebrow">Configura tu escenario</p>
+    <h3>{decisionTypes[type].label}</h3>
+    <div className="decision-workbench">
     <form onSubmit={event => { event.preventDefault(); void save(); }}>
       <h4>{decisionTypes[type].label}</h4>
       <div className="form-grid">{decisionTypes[type].fields.map(([key,label]) => {
@@ -44,9 +40,15 @@ export function DecisionLab({ simulations, onChange }: { simulations: SavedSimul
       {type === "invest_vs_debt" ? <p>Comparacion de un monto fijo con capitalizacion anual, sin aportes, impuestos ni comisiones. El retorno es un supuesto, no una garantia.</p> : null}
       <button className="solid-button" disabled={busy}>Calcular y guardar</button><p role="status">{message}</p>
     </form>
-    <dl>{results.map(result => <div key={result.label}><dt>{result.label}</dt><dd>{result.unit === "money" ? formatCRC(result.value) : result.value}</dd></div>)}</dl>
+    <aside className="decision-result-panel" aria-live="polite">
+      <p className="eyebrow">Resultado del escenario</p>
+      <h4>{results.length ? "Compara el impacto" : "Completa los datos para calcular"}</h4>
+      {results.length ? <dl>{results.map(result => <div key={result.label}><dt>{result.label}</dt><dd>{result.unit === "money" ? formatCRC(result.value) : result.value}</dd></div>)}</dl> : <p>Los resultados aparecerán aquí con los supuestos y limitaciones de esta decisión.</p>}
+    </aside>
+    </div>
+    <h4 className="saved-scenarios-title">Escenarios guardados</h4>
     <ul className="saved-records">{simulations.filter(item => Object.hasOwn(decisionTypes, item.simulationType)).map(item => <li key={item.id}>
-      <button onClick={() => { setType(item.simulationType as DecisionType); setValues(item.inputs as Record<string,number>); setResults((item.results.values ?? []) as DecisionResults); }}>{decisionTypes[item.simulationType as DecisionType].label} · {new Date(item.createdAt).toLocaleDateString("es-CR")}</button>
+      <button onClick={() => { onTypeChange(item.simulationType as DecisionType); window.setTimeout(() => { setValues(item.inputs as Record<string,number>); setResults((item.results.values ?? []) as DecisionResults); }); }}>{decisionTypes[item.simulationType as DecisionType].label} · {new Date(item.createdAt).toLocaleDateString("es-CR")}</button>
       <button disabled={busy} title="Eliminar simulacion" onClick={async () => {
         if (!window.confirm("Eliminar esta simulacion?")) return;
         setBusy(true);

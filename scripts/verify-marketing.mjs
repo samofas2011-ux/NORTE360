@@ -7,7 +7,8 @@ const base = 'http://localhost:3012';
 const expires = String(Math.floor(Date.now() / 1000) + 300);
 assert.ok(process.env.SITE_GATE_SECRET, 'Local private gate must be configured');
 const signature = createHmac('sha256', process.env.SITE_GATE_SECRET).update(expires).digest('hex');
-const headers = { Cookie: `norte360_gate=${expires}.${signature}` };
+const token = `${expires}.${signature}`;
+const headers = { Cookie: `norte360_gate=${token}; __Host-norte360_gate=${token}` };
 let checks = 0;
 for (const path of ['/', '/login', '/create-account', '/app']) {
   const res = await fetch(base + path, { redirect: 'manual' });
@@ -27,13 +28,13 @@ for (const extra of [{}, { headers }]) {
   checks++;
 }
 const html = await (await fetch(base, { headers })).text();
-for (const id of ['contenido', 'producto', 'funciones', 'confianza', 'preguntas', 'acceso', 'product-panel']) {
+for (const id of ['contenido', 'como-funciona', 'producto', 'confianza', 'preguntas', 'acceso', 'product-panel']) {
   assert.ok(html.includes(`id="${id}"`), `Missing target: ${id}`); checks++;
 }
-for (const phrase of ['Mi Panorama', 'Mi Norte', 'Mis Rutas', 'Decision Lab', 'Mi Familia', 'Norte360 Advisor', 'Datos ilustrativos', 'href="/login"', 'href="/create-account"']) {
+for (const phrase of ['Ve tu panorama.', 'Elige tu mejor ruta.', 'Mi Panorama', 'Mi Norte', 'Mis Rutas', 'Decision Lab', 'Datos ilustrativos', 'Construir mi panorama', 'href="/login"', 'href="/create-account"']) {
   assert.ok(html.includes(phrase), `Missing marketing content: ${phrase}`); checks++;
 }
 assert.equal((html.match(/role="tab"/g) || []).length, 4); checks++;
-assert.equal((html.match(/<details/g) || []).length, 9); checks++;
+assert.equal((html.match(/<details/g) || []).length, 6); checks++;
 assert.ok(!html.includes(process.env.SITE_GATE_SECRET)); checks++;
 console.log(`PASS: ${checks} marketing content, navigation target, private-gate and account-boundary checks. No database writes.`);
